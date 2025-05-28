@@ -1,0 +1,142 @@
+---
+import Breadcrumbs from '@/components/Breadcrumbs.astro'
+import PageHead from '@/components/PageHead.astro'
+import TOCHeader from '@/components/TOCHeader.astro'
+import TOCSidebar from '@/components/TOCSidebar.astro'
+import { badgeVariants } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import Layout from '@/layouts/Layout.astro'
+import { formatDate } from '@/lib/utils'
+import { Icon } from 'astro-icon/components'
+import { Image } from 'astro:assets'
+import { getCollection, render } from 'astro:content'
+
+export async function getStaticPaths() {
+  const recipes = await getCollection('recipes')
+  return recipes.map((recipe) => ({
+    params: { id: recipe.id },
+    props: recipe,
+  }))
+}
+
+const recipe = Astro.props
+const { Content, headings } = await render(recipe)
+---
+
+<Layout>
+  <PageHead slot="head" title={recipe.data.title} />
+  {
+    headings?.length > 0 && (
+      <TOCHeader slot="table-of-contents" headings={headings} />
+    )
+  }
+
+  <section
+    class="relative left-[calc(50%-50vw)] grid w-screen grid-cols-[minmax(0px,1fr)_min(calc(var(--breakpoint-md)-2rem),100%)_minmax(0px,1fr)] gap-y-6 px-4"
+  >
+    <div class="col-start-2">
+      <Breadcrumbs
+        items={[
+          { href: '/recipes', label: 'Recipes', icon: 'lucide:utensils' },
+          {
+            href: `/recipes/${recipe.id}`,
+            label: recipe.data.title,
+            icon: 'lucide:book-open',
+          },
+        ]}
+      />
+    </div>
+
+    {
+      recipe.data.image && (
+        <Image
+          src={recipe.data.image}
+          alt={recipe.data.title}
+          width={1200}
+          height={630}
+          class="col-span-full mx-auto w-full max-w-5xl object-cover"
+        />
+      )
+    }
+
+    <section class="col-start-2 flex flex-col gap-y-6 text-center">
+      <div class="flex flex-col">
+        <h1
+          class="mb-2 scroll-mt-31 text-4xl leading-tight font-medium text-pretty"
+          id="post-title"
+        >
+          {recipe.data.title}
+        </h1>
+
+        <div
+          class="text-muted-foreground mb-4 flex flex-wrap items-center justify-center gap-2 text-sm"
+        >
+          <span>{formatDate(recipe.data.date)}</span>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-2">
+          {
+            recipe.data.tags && recipe.data.tags.length > 0 ? (
+              recipe.data.tags.map((tag) => (
+                <a
+                  href={`/tags/${tag}`}
+                  class={badgeVariants({ variant: 'secondary' })}
+                >
+                  <Icon name="lucide:hash" class="size-3" />
+                  {tag}
+                </a>
+              ))
+            ) : (
+              <span class="text-muted-foreground text-sm">
+                No tags available
+              </span>
+            )
+          }
+        </div>
+      </div>
+    </section>
+
+    {headings.length > 0 && <TOCSidebar headings={headings} />}
+
+    <article class="prose col-start-2 max-w-none">
+      <Content />
+    </article>
+  </section>
+
+  <Button
+    variant="outline"
+    size="icon"
+    className="group fixed right-8 bottom-8 z-50 hidden"
+    id="scroll-to-top"
+    title="Scroll to top"
+    aria-label="Scroll to top"
+  >
+    <Icon
+      name="lucide:arrow-up"
+      class="mx-auto size-4 transition-all group-hover:-translate-y-0.5"
+    />
+  </Button>
+
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const scrollToTopButton = document.getElementById('scroll-to-top')
+      const footer = document.querySelector('footer')
+
+      if (scrollToTopButton && footer) {
+        scrollToTopButton.addEventListener('click', () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        })
+
+        window.addEventListener('scroll', () => {
+          const footerRect = footer.getBoundingClientRect()
+          const isFooterVisible = footerRect.top <= window.innerHeight
+
+          scrollToTopButton.classList.toggle(
+            'hidden',
+            window.scrollY <= 300 || isFooterVisible,
+          )
+        })
+      }
+    })
+  </script>
+</Layout>

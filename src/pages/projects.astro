@@ -1,0 +1,102 @@
+---
+import Breadcrumbs from '@/components/Breadcrumbs.astro'
+import PageHead from '@/components/PageHead.astro'
+import Layout from '@/layouts/Layout.astro'
+import Link from '@/components/Link.astro'
+---
+
+<Layout>
+  <PageHead slot="head" title="Projects" />
+  <Breadcrumbs
+    items={[{ label: 'Projects', href: '/projects', icon: 'lucide:code-2' }]}
+  />
+
+  <div class="prose prose-neutral dark:prose-invert max-w-none">
+    <h2>Current Projects</h2>
+    <ul>
+      <li>
+        <Link href="https://github.com/GlitchAI0/MusicVisualizer" underline>
+          Diffusion Music Visualizer
+        </Link> - Real-time music visualization using Stable Diffusion XS and audio features (2024)
+      </li>
+      <li>
+        <Link href="https://www.kaggle.com/competitions/planttraits2024/discussion/519218" underline>
+          PlantTraits2024 Challenge
+        </Link> - FGVC11 competition for predicting plant traits from multimodal data (2024)
+      </li>
+    </ul>
+
+    <h2>Past Projects</h2>
+    <ul>
+      <li>
+        <Link href="https://omarhammami.github.io/dataset_descriptions" underline>
+          Dataset Descriptions with LLMs
+        </Link> - Automated dataset description generation using contextual prompting (2024)
+      </li>
+      <li>
+        <Link href="https://llm-data-viz.streamlit.app/" underline>
+          LLM Data Visualization
+        </Link> - Natural language to visualization code generation (2024)
+      </li>
+      <li>
+        <Link href="https://github.com/GlitchAI0/cs460student/tree/master/FinalProjectShared" underline>
+          NYC Vision Zero PSA
+        </Link> - Public service announcement for traffic safety (2023)
+      </li>
+      <li>
+        <Link href="https://www.youtube.com/watch?v=SfTa-dQm9vA" underline>
+          Social Distance Violation Detection
+        </Link> - Computer vision for campus safety monitoring (2023)
+      </li>
+      <li>
+        <Link href="https://github.com/omarhammami/Graph-Contrastive-Spatial-Temporal-Clustering" underline>
+          Graph Contrastive Learning
+        </Link> - Research on spatial-temporal clustering methods (2023)
+      </li>
+      <li>
+        <Link href="https://github.com/omarhammami/Project-1" underline>
+          Illegal Parking Detection
+        </Link> - Computer vision for traffic enforcement (2022)
+      </li>
+      <li>
+        <Link href="http://noisycameras.online/" underline>
+          NYC Taxi & Traffic Cameras
+        </Link> - Analysis of taxi pickups and traffic patterns (2021)
+      </li>
+      <li>
+        <Link href="https://github.com/GlitchAI0/LinkedList" underline>
+          Data Structures in R
+        </Link> - Implementation of fundamental data structures (2021)
+      </li>
+      <li>
+        <Link href="https://github.com/GlitchAI0/LearningSpotipyBlockchain" underline>
+          Spotify Blockchain
+        </Link> - Real-time music tracking on blockchain (2021)
+      </li>
+      <li>
+        <Link href="https://github.com/omarhammami/TREAD" underline>
+          TREAD
+        </Link> - Privacy-preserving connected vehicle data storage on IPFS-enabled blockchain (2020)
+      </li>
+      <li>
+        <Link href="https://ar.smokedistract.com/" underline>
+          SmokeDistract AR
+        </Link> - Augmented reality app for smoking cessation support (2020)
+      </li>
+    </ul>
+
+    <h2>Publications</h2>
+    <ul>
+      <li>
+        <Link href="https://journals.sagepub.com/doi/full/10.1177/03611981211045074" underline>
+          "TREAD: Privacy Preserving Incentivized Connected Vehicle Mobility Data Storage"
+        </Link> - Transportation Research Record (2021)
+      </li>
+      <li>
+        <Link href="https://www.sciencedirect.com/science/article/abs/pii/S0965856422001458" underline>
+          "A New Curb Lane Monitoring and Illegal Parking Impact Estimation Approach"
+        </Link> - Transportation Research Part C (2022)
+      </li>
+    </ul>
+  </div>
+</Layout>

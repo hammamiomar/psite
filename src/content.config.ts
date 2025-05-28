@@ -40,9 +40,23 @@ const projects = defineCollection({
       tags: z.array(z.string()),
       image: image(),
       link: z.string().url(),
+      blogPost: z.string().optional(),
       startDate: z.coerce.date().optional(),
       endDate: z.coerce.date().optional(),
     }),
 })
 
-export const collections = { blog, authors, projects }
+const recipes = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/recipes' }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      date: z.coerce.date(),
+      image: image().optional(),
+      tags: z.array(z.string()).optional(),
+      draft: z.boolean().optional(),
+    }),
+})
+
+export const collections = { blog, authors, projects, recipes }

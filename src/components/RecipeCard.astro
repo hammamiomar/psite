@@ -1,0 +1,53 @@
+---
+import { Badge } from '@/components/ui/badge'
+import { formatDate } from '@/lib/utils'
+import { Icon } from 'astro-icon/components'
+import { Image } from 'astro:assets'
+import type { CollectionEntry } from 'astro:content'
+import Link from './Link.astro'
+
+interface Props {
+  entry: CollectionEntry<'recipes'>
+}
+
+const { entry } = Astro.props
+const formattedDate = formatDate(entry.data.date)
+---
+
+<article class="group rounded-lg border p-6 transition-colors hover:border-border/60">
+  <div class="flex flex-col gap-y-4">
+    <div class="flex flex-col gap-y-2">
+      <h3 class="text-lg font-medium leading-tight">
+        <Link 
+          href={`/recipes/${entry.id}`} 
+          class="group-hover:underline"
+        >
+          {entry.data.title}
+        </Link>
+      </h3>
+      <p class="text-muted-foreground text-sm leading-relaxed">
+        {entry.data.description}
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+      <div class="flex items-center gap-x-1 text-muted-foreground">
+        <Icon name="lucide:calendar" class="size-3" />
+        <span>{formattedDate}</span>
+      </div>
+      
+      {entry.data.tags && entry.data.tags.length > 0 && (
+        <>
+          <span class="text-muted-foreground">•</span>
+          <div class="flex flex-wrap gap-1">
+            {entry.data.tags.map((tag) => (
+              <Badge variant="secondary" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+</article>
