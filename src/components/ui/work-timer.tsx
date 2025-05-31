@@ -461,35 +461,36 @@ export default function WorkTimer({ className = '' }: WorkTimerProps) {
   const currentFrame = isActive ? activeFrames[frameIndex] : inactiveFrame
 
   return (
-    <div className={`${className} font-mono text-xs lg:text-sm transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <div className="text-center space-y-2 max-w-4xl mx-auto">
+    <div className={`${className} font-mono transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div className="text-center space-y-2 w-full">
         <div className="space-y-4 mb-4">
           <div>
-            <div className="text-muted-foreground mb-1">Work Time:</div>
-            <pre className="inline-block text-[10px] sm:text-xs lg:text-sm">
+            <div className="text-muted-foreground mb-1 text-xs sm:text-sm">Work Time:</div>
+            <pre className="inline-block text-[6px] xs:text-[7px] sm:text-[9px]">
               {convertToAsciiArt(formatTime(activeTime)).join('\n')}
             </pre>
           </div>
           
           <div>
-            <div className="text-muted-foreground mb-1">Break Time:</div>
-            <pre className="inline-block text-[10px] sm:text-xs lg:text-sm">
+            <div className="text-muted-foreground mb-1 text-xs sm:text-sm">Break Time:</div>
+            <pre className="inline-block text-[6px] xs:text-[7px] sm:text-[9px]">
               {convertToAsciiArt(formatTime(inactiveTime)).join('\n')}
             </pre>
           </div>
         </div>
         
-        <div className="overflow-x-auto">
-          <pre className="inline-block text-[10px] sm:text-xs whitespace-pre">
+        <div className="overflow-x-hidden pb-2">
+          <pre className="text-[6px] xs:text-[7px] sm:text-[8px] md:text-[10px] lg:text-xs whitespace-pre">
             {currentFrame.join('\n')}
           </pre>
         </div>
         
         <div className="text-muted-foreground text-xs sm:text-sm">
-          State: <span className="font-semibold">{isActive ? 'WORKING' : 'NOT WORKING'}</span> | 
+          State: <span className="font-semibold">{isActive ? 'WORKING' : 'NOT WORKING'}</span>
+          <br className="sm:hidden" />
           <button 
             onClick={toggleState}
-            className="mx-2 px-2 py-1 rounded hover:bg-muted transition-colors inline-flex items-center gap-1"
+            className="mx-2 px-2 py-1 rounded hover:bg-muted transition-colors inline-flex items-center gap-1 mt-1 sm:mt-0"
           >
             Press <kbd className="px-1.5 py-0.5 text-xs border rounded">Space</kbd> to toggle
           </button>
