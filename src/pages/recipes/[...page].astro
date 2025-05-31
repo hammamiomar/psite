@@ -1,5 +1,5 @@
 ---
-import BlogCard from '@/components/BlogCard.astro'
+import RecipeCard from '@/components/RecipeCard.astro'
 import Breadcrumbs from '@/components/Breadcrumbs.astro'
 import PageHead from '@/components/PageHead.astro'
 import PaginationComponent from '@/components/ui/pagination'
@@ -50,7 +50,7 @@ const years = Object.keys(recipesByYear).sort((a, b) => parseInt(b) - parseInt(a
           <ul class="flex flex-col gap-4">
             {recipesByYear[year].map((recipe) => (
               <li>
-                <BlogCard entry={recipe} />
+                <RecipeCard entry={recipe} />
               </li>
             ))}
           </ul>
