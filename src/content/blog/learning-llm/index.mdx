@@ -1,0 +1,110 @@
+---
+title: 'Learning in the age of llms'
+description: 'A reflection on llm usage while learning at The Recurse Center'
+date: 2025-5-31
+tags: []
+image: './banner.png'
+authors: ['']
+---
+
+It's funny because one of the main sentiments at the RC is that the more you code, the more you learn. But as time went on in the batch, I witnessed more Cursor and AI usage than I expected... could it also be that the more you *prompt*, the more you learn?
+
+## The Uncomfortable Truth
+
+Let's get something out of the way: all those arguments about LLM-generated code being buggy, insecure, or "not production-ready"? They're already aging poorly. 
+
+LLMs will write better code than humans. Not eventually—soon. They'll read documentation perfectly, never forget an edge case, follow every best practice, and never introduce typos at 3am. They'll refactor legacy codebases in seconds and implement complex algorithms without breaking a sweat.
+
+So if you're avoiding LLMs because "the code isn't good enough," you're preparing for yesterday's battle. The real question—the one that kept nagging at me throughout my Recurse Center batch—is this:
+
+**When perfect code is one prompt away, how do we make sure we're still learning?**
+
+Because here's the thing: understanding why code works, not just making it work, is what lets us debug the impossible, architect new systems, and push into unexplored territory. If we lose that, we lose the ability to build anything truly new.
+
+This isn't about gatekeeping or tradition. It's about recognizing that in a world of perfect code generation, the human ability to deeply understand systems becomes more valuable, not less.
+
+
+## The Core Tension
+
+The question isn't whether to use LLMs—it's how to use them without shortcircuiting your learning. Every time you paste code without understanding it, you're choosing immediate progress over deep knowledge. But every time you refuse to use available tools, you might be choosing struggle over growth.
+
+Personally, I find it acceptable to use LLMs if you are using it to write code that you yourself have a strong grasp on. It can hasten development time, assist in research, and produce faster experimentation. If you prompt it well, you can just be way more productive.
+
+But there's the constraint—you must have a good grasp and understanding of the code you're generating, or else, you aren't really coding. You're just prompting.
+
+## My Evolution Through Projects
+
+**First project—egui music fast Fourier transform visualizer:** I used LLMs to help me understand the egui framework, following a copy-paste sort of process. I'd copy what I didn't understand, ask for explanation, and LLM gives me an explanation and solves my problem. I then manually typed the output code in my editor, as a sort of syntax memorization technique. More prompting rather than coding. NOT a good way to learn... but I guess I learned syntax okay?
+
+**Second project—[PNGme](https://jrdngr.github.io/pngme_book/):** Since I made my prior mistake with the egui visualizer, I used no LLMs with this project, and decided to work on an easier project. It took me a longer time to finish, but I still finished it. However, I was assisted by the already given unit tests on the project page, and some hints. Overall, regular learning is still good learning.
+
+**Third project—[SAM_CAM_BAM](https://github.com/hammamiomar/SAM_CAM_BAM):** For the first half of the project, in setting up the webcam to image segmentation model, manual coding was done. Source code and documentation was also read heavily. This workflow was indeed super duper slow, but I learned an immense amount, implementing concepts from the Rust textbook directly into my project. It was also due to the fact that LLMs don't have a good knowledge of the Rust crates—so they just do the wrong thing.
+
+Halfway through SAM_CAM_BAM, however, I started working at a startup. I had less time on my hands, so for a lot of the visual processing and audio processing, I generated it with LLMs. I found this more acceptable because I had done these exact same audio steps and visual steps in my past works, and I was just telling the LLM exactly what I wanted to happen. However, I did lose out a lot on potential learning, as nothing beats coding from hands.
+
+## The Game Changer: LLMs as Learning Partners
+
+At this time Gemini 2.5 Pro came out, with the 1 million token context window. With Gemini and [reposcribe](https://github.com/mikeusru/reposcribe), I found the ability to give an LLM a larger codebase as a txt file, and allow it to guide me.
+
+**Startup experience:** Since this was production code, I did not want any oversights from LLM code, and did not want the code to look super out of place. However, due to the new technologies I was working with and the speed of development, LLMs were used. They were used more so as a guide rather than a code generator, explaining the code base, ensuring we were following the right path. I directed it to act as a guide, explaining my situation, and it worked beautifully. It was more so like a pairing partner. Really good for learning.
+
+**[Betterd_Spotify](https://github.com/hammamiomar/betterd_spotify)** This project had a lot of concepts I didn't know about—React-like frontends, web frameworks, and the Dioxus and Axum crates themselves. I needed a guide on best practices on creating an efficient web app, whilst also using reactive components in a correct way. The learning requirements were heavy. My solution was to give Gemini 2.5 a txt containing all the up-to-date Dioxus documentation, and telling it to give me the project as a guide.
+
+```markdown 
+I have been learning rust, and I am at an intermediate level. I want to do a new project where I write a fullstack webapp, in rust. My aims for this project is to learn how to write a proper fullstack app with rust, making sure that my code is structured right, and in the end, I can deploy it for users.
+
+Learning frameworks:
+
+axum, for routing
+
+Dioxus, for full stack dev
+
+... other stuff that I dont know about.
+Learning concepts:
+
+how to properly and securely make a webapp taht can serve users.
+
+how to create a good and reliable backend in an idiomatic way (REST? IDK)
+
+how to create a reactive frontend
+
+how to manage a databse
+
+how to deploy
+
+how to interact with external APIS
+
+Project Idea:
+
+using spotify web api, i wanna make a small webapp where I can get my playlist and do a "true" shuffle, creating a queue from the playlist that is a true rng shuffle from selecting random tracks from the playlist.  Stretch feature would also be a playlist "unraveler", where I can get a playlist and unravel it by genre, creating other playlists from it separated by genre.
+
+What I want for you to, is to guide me through this in a project walkthrough style. We will go section by section, where you guide me through the steps of creating a fullstack dioxus app. You will leave some code sections up to me to code, and I will provide it to you for verification, as if you grade me. You should provide and explain the broader concepts of web dev, such as model controller vs model and all that stuff. You can write alot of the boiler plate code and I will be expected to write SOME code of each sections, after you give me a header and all that. I want to learn WHY we do the things the way we do it, but also get the project done in a timely manner.
+
+If you need access to any documentation, like rust crate documenation or api documentation, let me know, and I can provide it.
+
+Lets first start by generating a learning plan, section by section, and outline what we will do. I am providing you the new dioxus 0.6 docs so you have a knowledge.
+```
+
+It worked beautifully. I was still able to write my own code, as I tuned it to write less code for me. Instead, it acted as a sort of director, telling me if I'm doing something right or wrong. Like a coding partner.
+
+## Principles for _Learning_ with LLMs
+
+Through this journey, I've developed some principles:
+
+1. **Use LLMs for acceleration, not replacement:** If you already understand the concept, LLMs can help you implement it faster. But if you don't understand it, you're just accumulating technical debt in your brain.
+
+2. **The manual typing rule:** Even when using LLM-generated code, type it out manually. It forces you to read every line and builds muscle memory.
+
+3. **LLMs as teachers, not oracles:** The best use case I found was having LLMs explain existing codebases, patterns, and best practices—not just generate solutions.
+
+4. **Know when to go solo:** For fundamental concepts, especially when learning a new language, there's no substitute for struggling through documentation and error messages yourself.
+
+5. **Context is king:** Modern LLMs with massive context windows can actually understand your entire project. This makes them incredible learning partners when you feed them documentation and your codebase together.
+
+## Finding Your Balance
+
+If we use LLMs properly, they can still be a good learning tool for code. It is just important that you still get good foundational understanding, and are able to make and fix your own errors. You really should not let it do too much work. We have to be careful, because we will always need to learn new things, and as LLMs become more powerful, we have to make sure that we can still learn effectively. They can act as a teacher of sorts, a coding partner. But human agency should always be present.
+
+The RC environment helped me realize that the goal isn't to avoid LLMs or to depend on them—it's to use them as tools that amplify your learning rather than replace it. Just like how pair programming with a more experienced developer can accelerate your growth, pairing with an LLM can too—as long as you're the one driving.
+
+Do you wanna be a prompter, or a coder?

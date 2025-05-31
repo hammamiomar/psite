@@ -2,57 +2,73 @@
 import Link from '@/components/Link.astro'
 import PageHead from '@/components/PageHead.astro'
 import { buttonVariants } from '@/components/ui/button'
+import WorkTimer from '@/components/ui/work-timer'
 import Layout from '@/layouts/Layout.astro'
 import { Icon } from 'astro-icon/components'
-import WorkTimer from '@/components/ui/work-timer'
 ---
 
 <Layout>
   <PageHead slot="head" title="About" />
-  
+
   <section class="prose prose-neutral dark:prose-invert max-w-none">
-    <h1>Omar Hammami</h1>
-    
     <p>
-      Welcome! I'm a software engineer and researcher interested in machine learning, 
-      computer vision, and building practical solutions to real-world problems.
+      Hey! Welcome to my site. This is where I document my
+      adventures in code, cooking, and everything in between. Whether you're
+      here for the machine learning projects, the Rust experiments, or just
+      curious about my latest kitchen output – I'm glad you stopped by. Feel
+      free to explore, and don't hesitate to reach out if something sparks your
+      interest!
     </p>
 
+    <h2>About me</h2>
     <p>
-      I'm currently working on projects involving diffusion models for music visualization 
-      and participating in machine learning competitions. My past work includes research 
-      in transportation technology, computer vision for traffic safety, and privacy-preserving 
-      blockchain systems.
+      <p>
+        I'm Omar – a software engineer who can't sit still when there's
+        something new to learn.
+      </p>
+
+      <p>
+        My journey started at NYU where I fell in love with data visualization
+        and seeing patterns come alive. That curiosity led me down the ML rabbit
+        hole through computer vision research (countless hours
+        squinting at traffic cameras later). Recently, I rediscovered my love
+        for systems programming during my Recurse Center batch – turns out Rust
+        is incredibly fun when you're building computer vision music visualizers.
+      </p>
+      <p>
+        These days, you'll find me jumping between implementing ML algorithms into real world use cases,
+        optimizing real-time systems, building full-stack apps, consuming technical literature, and
+        experimenting with audio processing (because music makes everything
+        better). I thrive in small teams where wearing many hats isn't just
+        accepted – it's expected.
+      </p>
+
+      <p>
+        When I'm not at my computer, I'm probably in the kitchen optimizing serious eats recipes
+        or at the gym. I love seeing results of my work in any shape or form.
+      </p>
+
+      <p>
+        I believe in learning by consuming egregious amounts of literature 
+        surrounding a topic, and then rapid experimenation based on the gained intuition.
+        The human brain is a very porous sponge where whatever you learn, will eventually leak out in mysterious and productive
+        ways, giving you solutions that you never would have imagined. 
+      </p>
     </p>
 
-    <div class="not-prose flex gap-4 my-6">
+    <div class="not-prose my-6 flex gap-4">
       <a
-        href="/resources/Resume2025MayOHam.pdf"
+        href="/cv/ResumeHammamiOmar.pdf"
         download
         class={buttonVariants({ variant: 'default' })}
       >
         <Icon name="lucide:download" class="mr-2 h-4 w-4" />
         Download CV
       </a>
-      <Link
-        href="/projects"
-        class={buttonVariants({ variant: 'outline' })}
-      >
+      <Link href="/projects" class={buttonVariants({ variant: 'outline' })}>
         View Projects
       </Link>
     </div>
-
-    <h2>Quick Links</h2>
-    <ul>
-      <li><Link href="/blog" underline>Blog</Link> - Technical posts and project updates</li>
-      <li><Link href="/projects" underline>Projects</Link> - Overview of my work</li>
-      <li><Link href="/recipes" underline>Recipes</Link> - Personal cookbook</li>
-    </ul>
-
-    <h2>Contact</h2>
-    <p>
-      Feel free to reach out if you'd like to collaborate or have questions about my work.
-    </p>
   </section>
 
   <WorkTimer client:load className="my-8" />

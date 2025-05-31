@@ -52,35 +52,63 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Light sage green background with excellent contrast */
+  --background: oklch(0.965 0.025 145);  /* Soft sage background */
+  --foreground: oklch(0.2 0.01 145);     /* Dark green-gray text for excellent readability */
+  
+  /* Primary uses your logo's darker green for buttons/links */
+  --primary: oklch(0.45 0.08 145);       /* Based on rgb(76,103,77) */
+  --primary-foreground: oklch(0.98 0 0);  /* White text on primary */
+  
+  /* Secondary uses a lighter sage tone */
+  --secondary: oklch(0.92 0.03 145);     /* Light sage */
+  --secondary-foreground: oklch(0.25 0.01 145);  /* Dark text */
+  
+  /* Muted colors for subtle elements */
+  --muted: oklch(0.94 0.02 145);         /* Very light sage */
+  --muted-foreground: oklch(0.5 0.04 145);  /* Medium sage for less prominent text */
+  
+  /* Accent uses your logo's warm tone */
+  --accent: oklch(0.75 0.08 85);         /* Based on rgb(185,169,116) */
+  --accent-foreground: oklch(0.2 0.01 85);  /* Dark text on accent */
+  
+  /* Destructive keeps a muted red-orange */
+  --destructive: oklch(0.6 0.15 35);
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  /* Borders and rings in sage tones */
+  --border: oklch(0.88 0.03 145);        /* Subtle sage border */
+  --ring: oklch(0.65 0.06 145);          /* Medium sage for focus rings */
 }
 
 [data-theme="dark"] {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --ring: oklch(0.556 0 0);
+  /* Dark mode with deep sage/charcoal tones */
+  --background: oklch(0.18 0.01 145);    /* Deep sage-charcoal background */
+  --foreground: oklch(0.94 0.01 145);    /* Light sage-tinted text */
+  
+  /* Primary matches logo color exactly */
+  --primary: oklch(0.48 0.06 145);       /* Matches rgb(76,103,77) logo color */
+  --primary-foreground: oklch(0.98 0 0);  /* White text on primary */
+  
+  /* Secondary colors */
+  --secondary: oklch(0.28 0.02 145);     /* Dark sage */
+  --secondary-foreground: oklch(0.92 0.01 145);  /* Light text */
+  
+  /* Muted colors */
+  --muted: oklch(0.25 0.02 145);         /* Slightly lighter than background */
+  --muted-foreground: oklch(0.65 0.03 145);  /* Muted sage text */
+  
+  /* Accent also uses sage green tone */
+  --accent: oklch(0.48 0.06 145);        /* Same as primary for consistency */
+  --accent-foreground: oklch(0.98 0 0);  /* White text on accent */
+  
+  /* Destructive in dark mode */
+  --destructive: oklch(0.65 0.15 30);
+  --destructive-foreground: oklch(0.95 0 0);
+  
+  /* Borders and rings */
+  --border: oklch(0.94 0.01 145 / 12%);  /* Subtle light sage border */
+  --ring: oklch(0.48 0.06 145);          /* Matches primary/logo color */
 }
 
 @layer base {

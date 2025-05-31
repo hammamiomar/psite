@@ -3,8 +3,8 @@ import type { IconMap, SocialLink, Site } from '@/types'
 export const SITE: Site = {
   title: 'Omar Hammami',
   description:
-    'Personal website of Omar Hammami - Software engineer and researcher working on machine learning, computer vision, and practical solutions.',
-  href: 'https://omarhammami.com',
+    'Personal website of Omar Hammami',
+  href: 'https://hammamiomar.xyz',
   author: 'Omar Hammami',
   locale: 'en-US',
   featuredPostCount: 2,
@@ -12,10 +12,7 @@ export const SITE: Site = {
 }
 
 export const NAV_LINKS: SocialLink[] = [
-  {
-    href: '/',
-    label: 'about',
-  },
+
   {
     href: '/blog',
     label: 'blog',
@@ -32,17 +29,21 @@ export const NAV_LINKS: SocialLink[] = [
 
 export const SOCIAL_LINKS: SocialLink[] = [
   {
-    href: 'https://github.com/omarhammami',
+    href: 'https://github.com/hammamiomar',
     label: 'GitHub',
   },
   {
-    href: 'mailto:contact@omarhammami.com',
+    href: 'mailto:contact@hhammamiomar@gmail.com',
     label: 'Email',
   },
   {
-    href: '/rss.xml',
-    label: 'RSS',
+    href: 'https://linkedin.com/in/hhammamiomar',
+    label: 'LinkedIn',
   },
+  {
+    href: 'https://x.com/hambagugu',
+    label: 'Twitter'
+  }
 ]
 
 export const ICON_MAP: IconMap = {
