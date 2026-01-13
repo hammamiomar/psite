@@ -1,0 +1,192 @@
+---
+title: 'hambajuba2ba: Real-Time SAE Steering for Music Visualization'
+description: 'Using sparse autoencoders to make diffusion models react to music'
+date: 2026-01-12
+tags: ['machine-learning', 'interpretability', 'music', 'diffusion']
+authors: []
+image: './banner.png'
+---
+
+Music visualization feels like a lost art. What used to be a staple of music players— those mesmerizing visuals that breathed with the beat— has been replaced by short-form content loops designed to grab attention. Discovery optimized, not listening enhanced.
+
+I wanted to build something different. Visuals that don't just react to music, but actually *understand* it semantically. Where audio doesn't just trigger effects, but sculpts the generation process itself.
+
+**Demo:** [Watch a quick preview](https://youtube.com/shorts/0-y043USl7s)
+
+---
+
+# How I Got Here
+
+I got into ML through data visualization. There's something deeply satisfying about making complex information legible— that moment when a good chart makes you *see* what the numbers meant all along. Data viz led me to data science, which led me to ML, which led me to computer vision.
+
+And then I discovered what lived *inside* these models.
+
+I came across the [Prisma toolkit](https://github.com/facebookresearch/dinov2) from Meta— tools for exploring what DINOv2 (a large vision model) had learned. It was fascinating. These abstract activation patterns that the model learned to represent "texture" or "shape" or "object boundary." The features weren't hand-designed; they *emerged* from data. And you could visualize them.
+
+That led me to Anthropic's work on [Sparse Autoencoders](https://www.anthropic.com/research/mapping-mind-language-model). SAEs decompose model activations into interpretable feature dictionaries. Models don't store concepts in single neurons— they store them in *superposition*, distributed across many neurons. SAEs learn to untangle that superposition into individual features you can actually understand.
+
+But here's what got me: you could *steer* generation with these features.
+
+The researchers at EPFL demonstrated this with [SDXL-unbox](https://sdxl-unbox.epfl.ch/). SAE features from different UNet blocks control different semantic aspects of image generation. Feature 2301 in the down blocks might make images more "intense." Feature 4977 in the up blocks might add "tiger stripes." These weren't mysterious latent dimensions— they were *concepts*.
+
+So I thought: what if I could connect this to audio?
+
+I trained my own SAE on drum audio representations: [drums_SAE](https://github.com/hammamiomar/drums_SAE). It worked. I could extract interpretable features from audio embeddings. That was a good sign.
+
+Then I realized I could extend my old music visualizer project— [hambaJubaTuba](https://github.com/hammamiomar/hambaJubaTuba). The original version was diffusion-based but used text prompt interpolation and latent noise. Cool, but not semantic. What if instead of arbitrary interpolation, audio could control *actual semantic features*? Bass hits steering the "intensity" feature. Drums modulating "texture." Vocals bringing out "expressions."
+
+hambajuba2ba was born.
+
+---
+
+# What It Does Now
+
+The system runs at 30+ FPS. Here's the pipeline:
+
+1. **Upload a track** → Demucs separates it into stems (bass, drums, vocals, other)
+2. **DSP feature extraction** → Not raw FFT bars, but perceptual features that match what humans actually feel
+3. **Physics simulation** → Mass-spring-damper smoothing for organic, musical motion
+4. **SAE steering** → Audio drives semantic features across 4 UNet blocks
+5. **SDXL-Turbo generation** → 1-step inference for real-time speed
+
+The user maps any stem to any feature in any block. Bass driving "intense/evil" in `down.2.1`. Drums modulating "tiger stripes" in `up.0.1`. Vocals pulling out "shouting expressions" in `up.0.0`. The combinations are yours to explore.
+
+---
+
+# The Technical Bits
+
+## Audio Processing
+
+Not all audio features are created equal. Raw FFT frequency bars look cool but don't match what humans *feel* in music.
+
+**K-weighted loudness** (from broadcast standards ITU-R BS.1770) weights frequencies by human perception— a 100Hz tone sounds quieter than a 1kHz tone at the same dB level. This matters for determining which stem should "lead" visually at any moment.
+
+**Asymmetric envelope following** uses fast attack (5ms) for snappy transients and slow release (150ms) for organic decay. This matches how we perceive impact— the hit is instant, but the *feeling* of the hit lingers.
+
+**Onset detection** catches transients separately from sustained tones. A kick drum hit is perceptually different from a sustained bass note, even at the same energy level.
+
+When the visual impact matches what you're *feeling* in the music, your brain validates the experience. Eyes and ears agree.
+
+## SAE Steering
+
+Different UNet blocks capture different semantic levels:
+
+| Block | What it controls |
+|-------|------------------|
+| `down.2.1` | Composition, mood, intensity |
+| `mid.0` | Abstract effects, atmosphere |
+| `up.0.0` | Details, expressions, faces |
+| `up.0.1` | Patterns, textures, colors |
+
+Each block has its own SAE with its own feature dictionary. Feature 2301 in `down.2.1` is different from feature 2301 in `mid.0`— they learned different things from different layers.
+
+## The torch.compile Problem
+
+This is where things got interesting.
+
+The obvious way to implement SAE steering is with PyTorch hooks— intercept activations after each block, modify them, continue. But hooks break `torch.compile`. Specifically, they break Dynamo tracing, which means you can't use `fullgraph=True` compilation. And without full graph compilation, you leave significant performance on the table.
+
+I spent a while figuring this out. The solution: **inline steering**.
+
+Instead of hooks, I wrap each attention block in a `SteeredModule` class that stores steering directions as **registered buffers**— not Python state. All mutable values (feature IDs, strengths, activation maps) are tensors updated via `.copy_()` and `.fill_()`. No Python conditionals in the forward pass based on dynamic values.
+
+```python
+# Steering applied inline after attention
+steering = (self.strength * self.activation_map) * self.direction
+out = out + steering
+```
+
+This lets me compile the entire UNet with `torch.compile(mode="reduce-overhead", fullgraph=True)`. The result: stable 30+ FPS.
+
+Another thing I learned the hard way: no `torch.cuda.synchronize()` in hot paths. It seems innocent— just make sure the GPU is done— but it serializes CPU and GPU execution, breaking the async pipeline. I measured 2-3x slowdown from a single sync call in the wrong place. Double-buffered JPEG encoding instead, letting CPU work on the previous frame while GPU generates the next.
+
+## Multi-Layer Intelligence
+
+Beyond raw audio-to-steering mapping, there's two intelligence layers:
+
+**Prominence weighting** determines which stem should "lead" at any moment. The stem that's perceptually loudest (K-weighted) gets higher steering multipliers. In a bass drop, bass dominates visually. When vocals enter, they take over. Automatic.
+
+**Novelty detection** compares recent spectral activity (4 beats) against medium-term context (32 beats). When something genuinely *new* enters— a new drum pattern, a vocal entry, a synth sweep— the system applies a temporary boost. Novel events get visual "pop."
+
+---
+
+# Latent Modulation (What the Demo Shows)
+
+The [demo video](https://youtube.com/shorts/0-y043USl7s) shows the earlier latent modulation system. SAE steering controls *what* appears in the image. But the image can also move in latent space— the underlying structure of the generation.
+
+Three modes that make the composition "breathe":
+
+| Mode | Driver | Effect |
+|------|--------|--------|
+| **ORBIT** | bass.energy | Slow circular walk in latent space |
+| **IMPULSE** | drums.transient | Structural displacement on kick hits |
+| **TEXTURE** | overall flux | High-frequency perturbation, like a "fizz" |
+
+ORBIT creates slow, dreamy drift. IMPULSE adds dramatic structural shifts on kick hits— the whole composition *jumps*. TEXTURE adds subtle liveliness even during quiet moments.
+
+All three use pre-allocated buffers with in-place operations to maintain torch.compile compatibility.
+
+---
+
+# What I'm Working On Now
+
+The demo shows an older system. What I'm building now is **destination-based modulation**— a cleaner approach that supersedes the original latent modulation.
+
+The core idea: instead of random perturbation around a base latent, you're *traveling between meaningful points*. You have destination A and destination B (seeds, prompts, album art), and you SLERP between them.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  DESTINATION MODULATORS                      │
+│                                                              │
+│   LATENT SPACE               │   PROMPT SPACE                │
+│   • Destination A (album)    │   • Destination A (prompt 1)  │
+│   • Destination B (seed 42)  │   • Destination B (prompt 2)  │
+│   • Blend position (0-1)     │   • Blend position (0-1)      │
+│   • Mode: slider | reactive  │   • Mode: slider | reactive   │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Two modes:
+
+**Slider mode:** You control a crossfader manually (VJ performance). The old orbit/impulse/texture still applies for micro-breathing on top.
+
+**Reactive mode:** Audio drives the blend position through physics. The music literally moves you between the two destinations. When bass energy is high, you're closer to A. When it drops, you drift toward B.
+
+This is more interpretable than random noise perturbation. "I'm 60% toward prompt B" actually means something. And it composes naturally with album art mode— just set A to your album art latent and B to a noise seed, and the slider controls how much the generation deviates from the original image.
+
+The destination system is working. Right now I'm focused on FPS optimization— there's some overhead from the SLERP computation and WebSocket telemetry that I'm ironing out. Once that's stable, I plan to deploy it.
+
+---
+
+# What's Next
+
+**Feature Browser:** Right now you need to know feature IDs. I want a browser with 500+ labeled features, searchable by concept. Type "texture" and see all texture-related features with preview images.
+
+**DINOv2 Semantic Layer:** Instead of feature IDs, imagine typing "dog" and getting dog-reactive visuals. DINOv2 SAEs (like RA-SAE-DINOv2-32k) give us interpretable concepts. Build a mapping between DINOv2's concept space and SDXL steering directions. Users search for semantic concepts, system translates to steering under the hood.
+
+**Native DINOv2 Generation:** The longer-term goal. Generate directly in DINOv2's feature space using something like RAE (Representation Autoencoder). Direct steering of 32k multimodal concepts with no translation layer.
+
+---
+
+# Closing
+
+I've been working on this for a while now. The demo shows SAE steering with the older latent modulation system. The destination-based system is working— I'm optimizing FPS and planning to deploy it soon. The feature browser, DINOv2 layer, and scene VDJ are still ahead.
+
+But the core proof-of-concept works: real-time semantic steering of diffusion models, driven by music, at 30+ FPS.
+
+Interpretability research is fascinating to read about. But I wanted to *build* something with it. Something where you can actually feel what these features do, not just read about them. Music seemed like the right medium— it's visceral, it's real-time, and everyone has an intuition for what "reacting to the beat" should feel like.
+
+More updates coming soon.
+
+---
+
+## References
+
+- [SDXL-unbox (EPFL)](https://sdxl-unbox.epfl.ch/) — "Unpacking SDXL Turbo" paper
+- [Anthropic SAE Research](https://www.anthropic.com/research/mapping-mind-language-model) — Dictionary learning for interpretability
+- [drums_SAE](https://github.com/hammamiomar/drums_SAE) — My experiment training SAEs on audio representations
+- [hambaJubaTuba](https://github.com/hammamiomar/hambaJubaTuba) — The original diffusion-based music visualizer (v1)
+- [Demucs](https://github.com/facebookresearch/demucs) — Meta's source separation model
+- [A Perceptually Meaningful Audio Visualizer](https://delu.medium.com/a-perceptually-meaningful-audio-visualizer-ee72051781bc) — Inspiration for perceptual DSP
+- [Audio Analysis for Advanced Music Visualization](https://ciphrd.com/2019/09/01/audio-analysis-for-advanced-music-visualization-pt-1/) — Technical reference

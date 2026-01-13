@@ -1,0 +1,78 @@
+---
+title: 'drums_SAE: Training Sparse Autoencoders on Audio'
+description: 'A quick experiment in interpretable audio features'
+date: 2026-01-12
+tags: ['machine-learning', 'audio', 'interpretability']
+authors: []
+---
+
+I wanted to see if the same sparse autoencoder techniques used for interpretability in language and vision models would work on audio. Turns out— they do.
+
+This was a fun little experiment. I trained a TopK SAE on the latent space of Stable Audio Open's VAE, using a small dataset of drum one-shots. The goal: decompose dense 64-dimensional latents into sparse, interpretable features that I could then use to steer the sound.
+
+---
+
+## The Setup
+
+The pipeline is pretty simple:
+
+```
+Drum Audio → VAE Encoder → 64-dim Latents → SAE → 4096 Sparse Features
+```
+
+I used a 64× expansion factor (64 → 4096 features) with TopK activation— only the top 32 features fire per timestep. This forces sparsity. The SAE learns to reconstruct the original latents from these sparse activations.
+
+The approach is based on recent work from Smule Labs: [Learning Interpretable Features in Audio Latent Spaces via Sparse Autoencoders](https://arxiv.org/abs/2510.23802) (Paek et al., 2025). They showed that SAEs can extract meaningful acoustic properties from audio latent spaces— brightness, boominess, warmth, etc.
+
+---
+
+## Finding Steering Directions
+
+Once the SAE is trained, you need to figure out what each feature *means*. I used linear probes— train a simple classifier to predict acoustic properties (spectral centroid, crest factor, band energies) from the SAE feature activations. The probe weights then become steering directions.
+
+If the probe learns "feature 12 correlates with brightness," you can increase feature 12's activation to make sounds brighter.
+
+---
+
+## The Residual Trick
+
+Here's the key insight for actually steering without artifacts. The SAE doesn't perfectly reconstruct the input— it captures maybe 88-94% of the signal. The rest is residual. If you just decode your steered features, you lose that residual and get weird artifacts.
+
+The fix: save the residual, steer in feature space, then add the residual back.
+
+```python
+def steer_with_probe(z, sae, direction, alpha=1.0):
+    f = sae.encode(z)["f"]
+    residual = z - sae.decode(f)  # What SAE missed
+
+    f_steered = sae.rms_norm(f + alpha * direction)
+    z_steered = sae.decode(f_steered) + residual
+    return z_steered
+```
+
+Simple but effective. The residual preserves the fine details while the steering modifies the interpretable parts.
+
+---
+
+## Results
+
+It works! You can take a drum hit and steer it— make it brighter, boomier, sharper. The changes are audible and match what the probe labels suggest. It's not perfect, but for a small dataset and a straightforward training setup, I was surprised how well it worked.
+
+The features cluster in meaningful ways too. Some features consistently activate on hi-hats (high frequencies), others on kicks (low frequencies). The SAE learned something real about drum acoustics.
+
+---
+
+## Why This Matters
+
+This experiment fed directly into [hambajuba2ba](/blog/hambajuba2ba)— my real-time music visualizer. If you can train interpretable features on audio, you can potentially do audio-to-audio steering, or use audio features to drive visual generation.
+
+The broader point: SAEs aren't just for language models. They work on any latent space where you want interpretable, steerable features. Audio is a fun domain to play with because you can *hear* the results immediately.
+
+Code: [github.com/hammamiomar/drums_SAE](https://github.com/hammamiomar/drums_SAE)
+
+---
+
+## References
+
+- Paek, Nathan & Zang, Yongyi & Yang, Qihui & Leistikow, Randal. (2025). *Learning Interpretable Features in Audio Latent Spaces via Sparse Autoencoders*. arXiv:2510.23802
+- [Stable Audio Open](https://huggingface.co/stabilityai/stable-audio-open-1.0) — The VAE I used for encoding
