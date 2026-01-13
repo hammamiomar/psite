@@ -15,6 +15,30 @@ But I'm not trying to bring back FFT bars. I'm building an **instrument**. A too
 
 ---
 
+# How I Got Here
+
+I got into ML through data visualization. There's something deeply satisfying about making complex information legible— that moment when a good chart makes you *see* what the numbers meant all along. Data viz led me to data science, which led me to ML, which led me to computer vision.
+
+And then I discovered what lived *inside* these models.
+
+I came across the [Prisma toolkit](https://github.com/facebookresearch/dinov2) from Meta— tools for exploring what DINOv2 (a large vision model) had learned. It was fascinating. These abstract activation patterns that the model learned to represent "texture" or "shape" or "object boundary." The features weren't hand-designed; they *emerged* from data. And you could visualize them.
+
+That led me to Anthropic's work on [Sparse Autoencoders](https://www.anthropic.com/research/mapping-mind-language-model). SAEs decompose model activations into interpretable feature dictionaries. Models don't store concepts in single neurons— they store them in *superposition*, distributed across many neurons. SAEs learn to untangle that superposition into individual features you can actually understand.
+
+But here's what got me: you could *steer* generation with these features.
+
+The researchers at EPFL demonstrated this with [SDXL-unbox](https://sdxl-unbox.epfl.ch/). SAE features from different UNet blocks control different semantic aspects of image generation. Feature 2301 in the down blocks might make images more "intense." Feature 4977 in the up blocks might add "tiger stripes." These weren't mysterious latent dimensions— they were *concepts*.
+
+So I thought: what if I could connect this to audio?
+
+I trained my own SAE on drum audio representations: [drums_SAE](/blog/drums-sae). It worked. I could extract interpretable features from audio embeddings. That was a good sign.
+
+Then I realized I could extend my old music visualizer project— [hambaJubaTuba](https://github.com/hammamiomar/hambaJubaTuba). The original version was diffusion-based but used text prompt interpolation and latent noise. Cool, but not semantic. What if instead of arbitrary interpolation, audio could control *actual semantic features*? Bass hits steering the "intensity" feature. Drums modulating "texture." Vocals bringing out "expressions."
+
+hambajuba2ba was born.
+
+---
+
 # It's an Instrument, Not a Visualizer
 
 Here's the test: do you stop touching controls during playback?
