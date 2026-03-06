@@ -12,48 +12,10 @@ import { Icon } from 'astro-icon/components'
 
   <section class="prose prose-neutral dark:prose-invert max-w-none">
     <p>
-      Hey! Welcome to my site. This is where I document my
-      adventures in code, cooking, and everything in between. Whether you're
-      here for the machine learning projects, the Rust experiments, or just
-      curious about my latest kitchen output – I'm glad you stopped by. Feel
-      free to explore, and don't hesitate to reach out if something sparks your
-      interest!
-    </p>
-
-    <h2>About me</h2>
-    <p>
-      <p>
-        I'm Omar – a software engineer who can't sit still when there's
-        something new to learn.
-      </p>
-
-      <p>
-        My journey started at NYU where I fell in love with data visualization
-        and seeing patterns come alive. That curiosity led me down the ML rabbit
-        hole through computer vision research (countless hours
-        squinting at traffic cameras later). Recently, I rediscovered my love
-        for systems programming during my Recurse Center batch – turns out Rust
-        is incredibly fun when you're building computer vision music visualizers.
-      </p>
-      <p>
-        These days, you'll find me jumping between implementing ML algorithms into real world use cases,
-        optimizing real-time systems, building full-stack apps, consuming technical literature, and
-        experimenting with audio processing (because music makes everything
-        better). I thrive in small teams where wearing many hats isn't just
-        accepted – it's expected.
-      </p>
-
-      <p>
-        When I'm not at my computer, I'm probably in the kitchen optimizing serious eats recipes
-        or at the gym. I love seeing results of my work in any shape or form.
-      </p>
-
-      <p>
-        I believe in learning by consuming egregious amounts of literature 
-        surrounding a topic, and then rapid experimenation based on the gained intuition.
-        The human brain is a very porous sponge where whatever you learn, will eventually leak out in mysterious and productive
-        ways, giving you solutions that you never would have imagined. 
-      </p>
+      Building <Link href="/blog/letting-computers-dance">hambajuba2ba</Link>
+      — a music visualizer that steers SDXL-Turbo's generation using
+      Sparse Autoencoder features mapped to audio. 50 FPS on a single consumer GPU.
+      Music visualization as interpretability research.
     </p>
 
     <div class="not-prose my-6 flex gap-4">
@@ -72,4 +34,32 @@ import { Icon } from 'astro-icon/components'
   </section>
 
   <WorkTimer client:load className="my-8" />
+
+  <section class="my-8 rounded-lg border border-border bg-secondary/30 p-6 text-center">
+    <h3 class="mb-2 text-lg font-medium text-foreground">
+      Get notified when hambajuba launches
+    </h3>
+    <p class="mb-4 text-sm text-muted-foreground">
+      Drop your email — I'll let you know when the desktop app is ready.
+    </p>
+    <form
+      action="https://formspree.io/f/YOUR_FORM_ID"
+      method="POST"
+      class="mx-auto flex max-w-md flex-col gap-3 sm:flex-row"
+    >
+      <input
+        type="email"
+        name="email"
+        required
+        placeholder="your@email.com"
+        class="flex-1 rounded-md border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+      />
+      <button
+        type="submit"
+        class={buttonVariants({ variant: 'default' })}
+      >
+        Notify me
+      </button>
+    </form>
+  </section>
 </Layout>

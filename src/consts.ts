@@ -8,7 +8,7 @@ export const SITE: Site = {
   author: 'Omar Hammami',
   locale: 'en-US',
   featuredPostCount: 2,
-  postsPerPage: 3,
+  postsPerPage: 100,
 }
 
 export const NAV_LINKS: SocialLink[] = [
@@ -33,7 +33,7 @@ export const SOCIAL_LINKS: SocialLink[] = [
     label: 'GitHub',
   },
   {
-    href: 'mailto:contact@hhammamiomar@gmail.com',
+    href: 'mailto:hhammamiomar@gmail.com',
     label: 'Email',
   },
   {

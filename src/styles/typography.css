@@ -114,6 +114,27 @@
     .katex-display {
       @apply text-foreground/80 my-6 overflow-x-auto overflow-y-hidden py-2 tracking-normal;
     }
+
+    .footnotes {
+      @apply text-muted-foreground mt-12 border-t border-border pt-6 text-sm;
+    }
+
+    .footnotes ol {
+      @apply ml-4;
+    }
+
+    .footnotes li {
+      @apply text-muted-foreground;
+    }
+
+    [data-footnote-ref] {
+      @apply text-primary no-underline text-xs font-medium;
+      vertical-align: super;
+    }
+
+    [data-footnote-backref] {
+      @apply text-primary no-underline ml-1;
+    }
   }
 }
 

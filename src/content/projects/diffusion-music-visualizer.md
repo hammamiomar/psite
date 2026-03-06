@@ -1,9 +1,8 @@
 ---
-name: 'Diffusion Music Visualizer'
-description: 'A music visualization tool using diffusion models to create dynamic visual representations synchronized with audio.'
-tags: ['machine-learning', 'computer-vision', 'music', 'visualization', 'diffusion-models']
-image: ''
-link: 'https://github.com/GlitchAI0/MusicVisualizer'
-startDate: '2024-01-01'
-endDate: '2024-12-31'
+name: 'hambajuba2ba'
+description: 'Real-time music visualizer that steers SDXL-Turbo generation using Sparse Autoencoder features mapped to audio at 50 FPS.'
+tags: ['machine-learning', 'interpretability', 'music', 'diffusion', 'real-time']
+link: 'https://hammamiomar.xyz/blog/letting-computers-dance'
+blogPost: 'letting-computers-dance'
+startDate: '2025-06-01'
 ---
