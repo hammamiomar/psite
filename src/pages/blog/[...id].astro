@@ -11,6 +11,7 @@ import { badgeVariants } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import Layout from '@/layouts/Layout.astro'
+import WaitlistForm from '@/components/WaitlistForm.astro'
 import {
   getAdjacentPosts,
   getAllPostsAndSubposts,
@@ -206,6 +207,10 @@ const postReadingTime = await getPostReadingTime(currentPostId)
     <article class="prose col-start-2 max-w-none">
       <Content />
     </article>
+
+    <div class="col-start-2">
+      <WaitlistForm />
+    </div>
 
     {
       (hasChildPosts || isCurrentSubpost) && (

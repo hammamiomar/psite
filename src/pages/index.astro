@@ -35,31 +35,4 @@ import { Icon } from 'astro-icon/components'
 
   <WorkTimer client:load className="my-8" />
 
-  <section class="my-8 rounded-lg border border-border bg-secondary/30 p-6 text-center">
-    <h3 class="mb-2 text-lg font-medium text-foreground">
-      Get notified when hambajuba launches
-    </h3>
-    <p class="mb-4 text-sm text-muted-foreground">
-      Drop your email — I'll let you know when the desktop app is ready.
-    </p>
-    <form
-      action="https://formspree.io/f/YOUR_FORM_ID"
-      method="POST"
-      class="mx-auto flex max-w-md flex-col gap-3 sm:flex-row"
-    >
-      <input
-        type="email"
-        name="email"
-        required
-        placeholder="your@email.com"
-        class="flex-1 rounded-md border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-      />
-      <button
-        type="submit"
-        class={buttonVariants({ variant: 'default' })}
-      >
-        Notify me
-      </button>
-    </form>
-  </section>
 </Layout>

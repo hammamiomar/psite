@@ -1,0 +1,103 @@
+---
+title: 'Letting Computers Dance'
+description: 'On music visualization as a lost art, the space inside generative models, and building an instrument to navigate it'
+date: 2026-03-06
+tags: ['machine-learning', 'interpretability', 'music', 'diffusion', 'creative-ai']
+authors: []
+---
+
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">
+  <iframe src="https://www.youtube.com/embed/OOtSUKUOLHM" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" />
+</div>
+
+---
+
+Computers used to dance.
+
+If you were around for Winamp, you remember. You'd put on a song, fullscreen the visualizer, and just— watch. The visuals didn't illustrate the music. They _breathed_ with it. Something about seeing your speakers' output rendered as light made the listening experience more vivid. Like the music had a body.
+
+Then streaming happened, and the dance stopped. Spotify gives you a static album cover. Apple Music gives you animated gradients. TikTok turned music into a vehicle for short-form content — the visual leads you _to_ the audio, not _with_ it.
+
+We lost something.
+
+---
+
+## The Space Behind the Image
+
+I came into machine learning through data visualization.
+
+Back when everyone was talking about "big data," the question that grabbed me wasn't _how do we store it_. It was _how do we see it?_ A good visualization didn't add anything. It showed what was already true.
+
+With convolutional neural networks, you could visualize feature maps — actual images of what each layer had learned. Edges in early layers. Textures in the middle. Faces near the end. Then came latent walks — watching a generative model morph smoothly from one face to another through a continuous space of visual concepts. The model wasn't a function that maps input to output. It was a _space_ you could move through, where every point was a coherent image.
+
+We haven't built the right tools to navigate these spaces yet.
+
+Researchers have always been trying to see what's inside. Feature maps. Saliency maps. Attention visualizations. Latent interpolations. The tools exist, locked away in research labs and Jupyter notebooks, inaccessible to anyone outside the field.
+
+Deep Dream gave millions of people an intuition for what was happening inside neural networks. Those trippy dog-slug chimeras and fractal eyeballs. For a moment, everyone could see.
+
+---
+
+## The Medium, Not the Copy
+
+Almost everyone using image generation is trying to replicate. Make a photo that looks real. Make an illustration that replaces stock art. The entire conversation is replacement.
+
+Few people are asking what's _unique_ about this medium.
+
+A model trained on millions of images doesn't just learn to produce images. It learns _patterns_. It builds a structured space where visual concepts are organized — by mood, by composition, by texture. "Intensity" lives somewhere in there. "Warmth" lives somewhere else. "Tiger stripes" and "leopard spots" are neighbors. The model built a _map_ of visual understanding.
+
+Machine learning is pattern matching. But in creating something that can replicate patterns, you've also created a structured representation of those patterns. No paintbrush has an internal map of every visual concept it's ever been used to create. No camera has a navigable space of every scene it's ever captured. A diffusion model does. And we're using it to make fake headshots.
+
+The image is the surface. The map underneath — the structured space of concepts — is the medium worth exploring.
+
+---
+
+## Making the Model Dance
+
+I built a tool to navigate that space, with music as the interface.
+
+Sparse Autoencoders decompose a model's activations into interpretable features. Not mysterious dimensions, actual concepts. [Surkov et al. at EPFL](https://sdxl-unbox.epfl.ch) trained SAEs on SDXL-Turbo and found 20,480 features across four attention blocks. The features weren't labeled, so we [labeled all 20,480 ourselves](https://huggingface.co/datasets/hammamiomar/sdxl-turbo-sae-labels) using a VLM ensemble for $85. Feature 2301 makes images "intense and dark." Feature 4977 adds "tiger stripes." Feature 4161 makes people smile.
+
+The interesting part is browsing them. You pick a feature and scroll through its neighbors — concepts the model considers related in ways you wouldn't expect. "Tiger stripes" lives near "leopard spots" but also near "chain-link fence." Push a feature negative and the model avoids the concept, sometimes in ways that reveal what it was quietly doing all along. Mix two features and you get something neither describes on its own — what Anthropic's interpretability work calls polysemanticity, where a single direction in activation space responds to multiple unrelated concepts. The map has structure, but it's the model's structure, not ours.
+
+hambajuba2ba separates your music into stems (bass, drums, vocals, everything else), analyzes each one offline, and when you press play, the generation loop runs at 50 frames per second. Four axes of control, all responding to music, all converging into a single GPU operation:
+
+**SAE steering** — each stem drives a different feature through physics simulations. The bass hits and the "intensity" feature surges and decays like a plucked string. Drums get snappy bounce. Vocals get smooth, breathing dynamics.
+
+**Noise composition** — the latent noise that seeds generation walks in a circle synced to the beat. Each beat rotates through noise space, so the base composition breathes with the rhythm.
+
+**Prompt interpolation** — two scene descriptions blend via SLERP in embedding space, driven by harmonic tension. Key changes in the music shift the visual world.
+
+**Spatial masks** — features aren't applied uniformly. They're painted onto a 16×16 grid. Pitch shifts the mask vertically — low notes affect the bottom, high notes the top.
+
+When the visual impact matches what you're feeling in the music, something clicks. You're not watching a visualization — you're playing an instrument.
+
+Route drums to one block, vocals to another. Browse 20,480 features by concept. Swap "intense darkness" for "warm amber glow" and the experience transforms. The same song tells a different story every time depending on your choices. Built to give you a vocabulary, not a single output.
+
+This is where the data visualization principle comes back. Looking at a static chart tells you something. _Interacting_ with it — dragging nodes, filtering dimensions, zooming into clusters — tells you everything. When you reach into generation and change the feature, change the physics, change the prompt, and watch the model respond, you develop intuitions you can't get any other way. You start to _feel_ which features control mood versus texture. You learn how the model decomposes the visual world from playing, not from reading a paper.
+
+---
+
+## The Character
+
+hambajuba is a little computer. A relic that survived long after the humans left, found their music in the rubble, and doesn't know why it makes his circuits sing. His heart is the SDXL output, pulsing to the BPM. His face is an ASCII terminal with eyes that blink on the beat and widen on drops. Flowers grow inside him. Different stems feed different orbs, and they bloom when their stem is active. He _grows_ from music.
+
+Winamp had skins — users customized their player until it became _theirs_. WWII pilots painted nose art on their planes — Bockscar is remembered, Airbus A380 is not. The things we name, we remember. hambajuba should be your creature, shaped by your music, unlike anyone else's.
+
+---
+
+## Where This Goes
+
+None of this would exist without the interpretability research community. [Surkov et al. at EPFL](https://sdxl-unbox.epfl.ch) trained the SAEs on SDXL-Turbo and made the features explorable. [Goodfire's Painting with Concepts](https://www.goodfire.ai/research/painting-with-concepts) showed that SAE features could be spatially painted onto generation — an insight we build on directly. We [labeled all 20,480 features](https://huggingface.co/datasets/hammamiomar/sdxl-turbo-sae-labels) and made them playable.
+
+Discriminative representation models (DINOv2, SigLIP, SAM2) and generative models are converging. Research like REPA and RAE shows you can guide generation through _representation space_ rather than pixel space. If we could steer generation through a representation model's understanding of visual meaning — objects, spatial relationships, abstraction levels — driven by music, we wouldn't just be navigating SAE features. We'd be navigating the structure of visual understanding itself. Data visualization for the latent spaces of foundation models, with music as the interface.
+
+The architecture doesn't care what generates the image — Flux, video diffusion, whatever runs fast enough and has interpretable internals.
+
+The dominant way people use generative models is a slot machine: type a prompt, pull the lever, see what comes out. I want to build something where you interact with generation, learn about the model by using it, develop intuitions through play.
+
+Music is the first application because it gives you a continuous, rich signal that maps well onto generation parameters. But real-time interpretable steering applies beyond music — image generation, video, interactive art, scientific visualization of model internals.
+
+---
+
+_For the full engineering deep dive — how we hit 50 FPS, how SAE steering works inline, how the audio bridge is built — read [the technical writeup](/blog/fifty-fps-realtime-sdxl)._
