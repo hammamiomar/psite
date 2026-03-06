@@ -2,6 +2,7 @@
 title: '50 FPS Real-Time SDXL: A Technical Writeup'
 description: 'The engineering behind hambajuba2ba — SAE-steered, audio-reactive diffusion at 50 FPS on a single RTX 5090'
 date: 2026-03-06
+image: ./og-face.png
 tags: ['machine-learning', 'systems', 'cuda', 'interpretability', 'music', 'diffusion']
 authors: []
 ---
@@ -16,7 +17,7 @@ Real-time diffusion at 50 FPS. SAE-steered, audio-reactive, on a single RTX 5090
 
 This is the engineering writeup for hambajuba2ba — a music visualizer that steers SDXL-Turbo's generation process using Sparse Autoencoder features mapped to audio in real time. The system has two halves: _building the features_ (the ML engine, the audio pipeline, the labeling) and _playing the features_ (the bridge, the tools, the interface that ties it all together as an instrument). For the vision and philosophy behind this project, read [Letting Computers Dance](/blog/letting-computers-dance).
 
-Everything here was built with Claude as a pair programmer. More on what that collaboration actually looked like at the end.
+Everything here was built with Claude as a pair programmer.
 
 ---
 
@@ -56,9 +57,9 @@ x0     = noisy - sigma * pred                # euler step, sigma_next=0
 image  = vae.decode(x0 / scaling_factor)
 ```
 
-No loops. No scheduler state machine. No dynamic tensor shapes. This is why the whole thing can live inside a single CUDA graph.
+No loops, no scheduler state machine, no dynamic tensor shapes. The whole thing lives inside a single CUDA graph.
 
-We bypass `diffusers.Pipeline.__call__()` entirely and implement these five operations directly in `engine.py`. Diffusers is great for flexibility — it's terrible for compiled inference where every Python call is a potential graph break.
+We bypass [diffusers](https://github.com/huggingface/diffusers)' `Pipeline.__call__()` entirely and implement these five operations directly in `engine.py`. Diffusers is great for flexibility — it's terrible for compiled inference where every Python call is a potential graph break.
 
 #### The Compilation Strategy
 
@@ -95,7 +96,7 @@ activations += strength * feature_direction
 
 The standard approach: PyTorch forward hooks. Register a callback on the attention block, modify the output, continue. This is what the paper's SAEPaint demo uses.
 
-**Hooks break `torch.compile(fullgraph=True)`.** They're Python callbacks — opaque to Dynamo's tracer. Each hook creates a graph break. With CUDA graphs, the GPU would need to stop, signal the CPU, run Python, then resume. Instant death for 50 FPS.
+**Hooks break `torch.compile(fullgraph=True)`.** They're Python callbacks — opaque to Dynamo's tracer. Each hook creates a graph break. With CUDA graphs, the GPU would need to stop, signal the CPU, run Python, then resume.
 
 #### The Solution: SteeredModule Wrappers
 
@@ -141,7 +142,19 @@ We walk the UNet module tree at init time and surgically replace four attention 
 
 All operate at 16x16 spatial resolution. The `activation_map` buffer enables per-pixel steering — features can be applied selectively to specific regions of the image.
 
-{/* Screenshot: the four blocks in the UI, each linked to a different stem, each with a different feature active */}
+![SDXL-Turbo UNet architecture — the 4 green blocks are where SAE steering is applied](./diagram.jpeg)
+
+<div class="not-prose" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 640px; margin: 1rem auto;">
+
+![Composition block — down.2.1](./panel-composition.png)
+
+![Abstract block — mid.0](./panel-abstract.png)
+
+![Details block — up.0.0](./panel-details.png)
+
+![Style block — up.0.1](./panel-style.png)
+
+</div>
 
 #### Two-Tier Update Dispatch
 
@@ -164,9 +177,7 @@ Critical optimization: all 20,480 mean values are bulk-transferred to CPU floats
 
 ---
 
-### Labeling 20,480 Features for $85
-
-We had features. We didn't know what they meant.
+### Labeling 20,480 Features for \$85
 
 The original paper (Surkov et al., NeurIPS 2025) only labeled the `down.2.1` block — and never published those labels. They explicitly said VLM labeling was "unsatisfactory" for the other three blocks with subtler visual effects.
 
@@ -174,21 +185,20 @@ The original paper (Surkov et al., NeurIPS 2025) only labeled the `down.2.1` blo
 
 Our first attempt: for each feature, generate ON/OFF images, embed with SigLIP, subtract the directions, match against a vocabulary.
 
-Complete failure. Max confidence across all 20,480 features: 0.19. Known feature 2301 ("intense/evil") got labeled "crowd" at 0.11. Root cause: single seed + empty prompt means every image starts from the same grey blob. Features need semantic context to express themselves — the CLIP direction captures "how this grey blob changed" rather than what the feature actually means.
+Max confidence across all 20,480 features: 0.19. Known feature 2301 ("intense/evil") got labeled "crowd" at 0.11. Root cause: single seed + empty prompt means every image starts from the same grey blob. Features need semantic context to express themselves — the CLIP direction captures "how this grey blob changed" rather than what the feature actually means.
 
 #### What Worked: A VLM Ensemble
 
-The insight was that no single method works for all four blocks. Composition features (down.2.1) are easy for VLMs to describe. Spatial structure features (mid.0) need spatial analysis, not visual description. Texture features (up.0.1) are the hardest — even three VLMs struggle to verbalize visual patterns.
+No single method works for all four blocks. Composition features (down.2.1) are easy for VLMs to describe. Spatial structure features (mid.0) need spatial analysis, not visual description. Texture features (up.0.1) are the hardest — even three VLMs struggle to verbalize visual patterns.
 
 We built an ensemble:
 
-**Generate 50K images** on a Modal A100 with activation logging — for each image, record which features fired and where. ~$10.
+**Generate 50K images** on a [Modal](https://modal.com) A100 with activation logging — for each image, record which features fired and where. ~\$10.
 
 **Rank images per feature** with block-specific metrics. This was a key design decision. Composition features (down.2.1) activate globally across the image, so we rank by mean activation. Detail features (up.0.0) fire locally, so we rank by max activation and crop the images to the region of peak activity. Texture features (up.0.1) are semi-global, so we rank by sum. Different blocks need different lenses.
 
-{/* Screenshot: the FeaturePicker browsing features with labels, categories, and confidence indicators */}
 
-**Three VLMs via OpenRouter** with block-specific prompts. This matters enormously — a generic "describe what's different" prompt fails, but "IGNORE the subject matter, focus ONLY on visual properties" for the texture block succeeds. Qwen3-VL-235B first ($12), GLM-4.6V second ($27), Kimi K2.5 as tiebreaker ($36).
+**Three VLMs via [OpenRouter](https://openrouter.ai)** with block-specific prompts. This matters enormously — a generic "describe what's different" prompt fails, but "IGNORE the subject matter, focus ONLY on visual properties" for the texture block succeeds. Qwen3-VL-235B first (\$12), GLM-4.6V second (\$27), Kimi K2.5 as tiebreaker (\$36).
 
 The Kimi pass had an accident. A bug in disagreement detection (exact string match instead of semantic similarity) triggered a 99% false disagreement rate, so Kimi annotated 88% of features instead of ~30%. By the time we caught it, the money was spent. Turned out to be the best accident of the project — Kimi's over-annotation pushed high-confidence labels from 42% to 71% on the detail block and from 26% to 62% on the texture block.
 
@@ -198,17 +208,17 @@ The Kimi pass had an accident. A bug in disagreement detection (exact string mat
 
 **Label fusion** — priority-ordered: spatial override → VLM consensus → TF-IDF alignment → best guess.
 
-Result: 77.4% high-confidence labels. Ground-truth accuracy: 14/16 (87.5%). Total cost: ~$85. The paper's single-VLM approach would have been ~$2,860.
+Result: 77.4% high-confidence labels. Ground-truth accuracy: 14/16 (87.5%). Total cost: ~\$85. The paper's single-VLM approach would have been ~\$2,860.
 
 ---
 
 ### The Audio Pipeline: Offline Everything
 
-The defining architectural decision: _all DSP runs at upload time._ Runtime is O(1) array interpolation.
+All DSP runs at upload time. Runtime is O(1) array interpolation.
 
 #### Stem Separation
 
-Demucs (htdemucs_ft) splits audio into 4 stems: bass, drums, vocals, other. Then Linkwitz-Riley LR-4 crossover filters produce 5 virtual sub-bands — drums_low (kick), drums_mid (snare), drums_high (hats), other_mid (guitars/keys), other_high (shimmer/air). Total: 9 stems. Zero-phase filtering via `sosfiltfilt` — acausal but no phase distortion, which is fine for offline.
+[Demucs](https://github.com/facebookresearch/demucs) (htdemucs_ft) splits audio into 4 stems: bass, drums, vocals, other. Then Linkwitz-Riley LR-4 crossover filters produce 5 virtual sub-bands — drums_low (kick), drums_mid (snare), drums_high (hats), other_mid (guitars/keys), other_high (shimmer/air). Total: 9 stems. Zero-phase filtering via `sosfiltfilt` — acausal but no phase distortion, which is fine for offline.
 
 #### Perceptual Feature Extraction
 
@@ -231,13 +241,13 @@ Per-stem presets tuned for character: drums get 2ms attack / 100ms release (50:1
 
 **Spectral centroid (brightness)** and **spectral flatness (tonality)** — centroid is the "center of mass" of the spectrum (high = bright/sharp, low = warm/dull). Flatness measures tonal vs. noise-like character (0 = pitched instrument, 1 = hi-hat). Used for Bouba/Kiki audio-visual correspondence — the psychoacoustic mapping where angular visuals correspond to harsh sounds and round visuals to tonal sounds.
 
-**HPSS** — harmonic-percussive source separation via median filtering in the spectrogram domain. The ratio gates subsequent analysis: if a stem is >70% percussive, we skip harmonic features entirely (no point tracking pitch on a drum stem).
+**HPSS** — harmonic-percussive source separation via median filtering (Fitzgerald, 2010) in the spectrogram domain. The ratio gates subsequent analysis: if a stem is >70% percussive, we skip harmonic features entirely (no point tracking pitch on a drum stem).
 
 **Psychoacoustic roughness** — the Sethares/Plomp-Levelt dissonance model. For each frame: find spectral peaks, compute all pairwise critical-bandwidth interactions, sum dissonance. Fully vectorized via NumPy broadcasting (~50x over per-frame loops). This gives us _tension_ — how rough and dissonant the current moment sounds. Drives harmonic-aware scene transitions.
 
 **Tonal distance** — Jensen-Shannon divergence between each frame's chroma and the track average. Measures "how far from the home key." Key-agnostic: a modulation from C major to A minor reads as departure regardless of absolute key.
 
-**Pitch tracking** — PESTO (monophonic, 12x faster than CREPE) for vocals and bass. Basic Pitch (Spotify, polyphonic ONNX) for the "other" stem. Output: pitch_hz, pitch_confidence, pitch_normalized [0,1] for spatial mapping.
+**Pitch tracking** — [PESTO](https://github.com/SonyCSLParis/pesto) (monophonic, 12x faster than CREPE) for vocals and bass. [Basic Pitch](https://github.com/spotify/basic-pitch) (Spotify, polyphonic ONNX) for the "other" stem. Output: pitch_hz, pitch_confidence, pitch_normalized [0,1] for spatial mapping.
 
 **Multi-timescale novelty** — spectral flux smoothed at three BPM-scaled windows: ~0.5s (transients/fills), ~4s (phrase boundaries), ~16s (section changes/drops). Layer detection: new instrument entries via normalized flux + flatness change, debounced at 500ms.
 
@@ -245,7 +255,7 @@ Per-stem presets tuned for character: drums get 2ms attack / 100ms release (50:1
 
 The system also tracks musical _relationships_ between stems.
 
-**Phase Locking Value (PLV)** — Hilbert transform to extract instantaneous phase, then compute phase synchrony in a sliding window. 1.0 = perfectly locked.
+**Phase Locking Value (PLV)** — Hilbert transform to extract instantaneous phase, then compute phase synchrony (Lachaux et al., 1999) in a sliding window. 1.0 = perfectly locked.
 
 **Lock index** — weighted composite: envelope correlation (40%), PLV (35%), onset synchrony (25%). Above 0.7 = "in the pocket" (rhythmically locked). Below 0.3 = independent. This drives the Dancer Ensemble's coupling bonus — stems that groove together get visual reinforcement.
 
@@ -261,7 +271,7 @@ This is why 50 FPS is achievable. The audio bridge adds ~1-2ms per frame, not 50
 
 ## Part II: Playing the Features
 
-Everything in Part I exists to produce two things: (1) a compiled CUDA graph that can steer SDXL-Turbo's generation via SAE features at four attention blocks, and (2) pre-computed audio feature arrays for every stem. Part II is about the _instrument_ — how those features become an interactive tool for navigating the model's space through music.
+Part I produces two things: a compiled CUDA graph that steers SDXL-Turbo's generation via SAE features at four attention blocks, and pre-computed audio feature arrays for every stem. Part II is the _instrument_ — how those features become interactive tools for navigating the model's space through music.
 
 ---
 
@@ -269,7 +279,11 @@ Everything in Part I exists to produce two things: (1) a compiled CUDA graph tha
 
 Each of the four UNet blocks gets its own panel. This is the primary control surface — where the user decides what the model expresses and how it responds to music.
 
-{/* Screenshot: a Block Config Panel fully expanded, with feature picker, spatial grid, and all controls visible */}
+<div style="max-width: 420px; margin: 1rem auto;">
+
+![Block Config Panel — feature picker, spatial grid, link target, stage bounds](./panel-composition.png)
+
+</div>
 
 #### Link Target
 
@@ -287,7 +301,11 @@ The feature picker lets you browse 5,120 features per block. Three modes:
 
 27 category colors (scene, character, texture, mood, color, spatial, style...). Each feature shows its label, category tag, and confidence level.
 
-{/* Screenshot: FeaturePicker searching for "warm" — showing results like "warm amber lighting," "warm wood grain," "warm golden hour" */}
+<div style="max-width: 420px; margin: 1rem auto;">
+
+![Feature picker — searching features](./feature-search.png)
+
+</div>
 
 #### Stage Bounds (Strength Range)
 
@@ -350,7 +368,11 @@ A 16x16 paintable canvas in the Block Config Panel. Left-click paints cells on, 
 - **Fill**: Everything on (uniform steering)
 - **Clear**: Everything off
 
-{/* Screenshot: the SpatialGrid canvas with a custom hand-drawn mask — maybe a diagonal sweep */}
+<div style="max-width: 420px; margin: 1rem auto;">
+
+![Spatial grid — hand-drawn mask painted onto the 16x16 grid](./spatial-draw.png)
+
+</div>
 
 You can paint arbitrary shapes. Want "intensity" only in the left third of the image? Paint it. Want "faces" only in the center? Paint it. The mask is immediately uploaded to GPU via `copy_()` and takes effect on the next frame.
 
@@ -361,8 +383,6 @@ The spatial mask moves automatically with the music's pitch.
 12 pre-computed Gaussian masks on GPU, one per chromatic pitch level. Low pitch (bass notes) → mask centered at the bottom of the image. High pitch (treble) → mask centered at the top. Spread = 0.25 → each Gaussian covers ~50% of vertical space, so transitions are smooth.
 
 At runtime, the system samples the stem's normalized pitch via `np.interp()`, maps it to a mask index [0-11], and writes the corresponding Gaussian to the activation_map buffer. The effect: a bass line playing low notes steers the bottom of the image, and as the melody rises, the steering follows it upward. Natural spatial-frequency correspondence.
-
-{/* Screenshot: split view showing pitch-aligned mode — low note affecting bottom, high note affecting top */}
 
 #### How Spatial Maps Interact With Audio
 
@@ -378,7 +398,7 @@ These combinations aren't programmed — they emerge from the user's choices. An
 
 ### The Bridge: Physics Between Audio and Visuals
 
-Directly mapping audio amplitude to visual intensity is mechanical and jittery. Raw signal → raw parameter = a bad visualizer. The bridge sits between audio features and SAE steering, transforming reactive signals into _organic motion_.
+Directly mapping audio amplitude to visual intensity is mechanical and jittery. The bridge sits between audio features and SAE steering, transforming reactive signals into organic motion.
 
 #### Mass-Spring-Damper
 
@@ -417,7 +437,7 @@ A mass-spring-damper settles to equilibrium. That's fine for drums — they hit 
 
 **CoupledOscillatorPhysics**: Two virtual oscillators at slightly different frequencies (0.3Hz and 0.47Hz) coupled by a spring. The frequency mismatch creates beating patterns — perpetual "breathing" motion. Energy controls coupling strength and amplitude. For pads and drones.
 
-**PerlinDriftPhysics**: OpenSimplex noise for smooth, never-repeating drift. Energy controls speed through noise space. For ambient and textural content.
+**PerlinDriftPhysics**: [OpenSimplex](https://github.com/lmas/opensimplex) noise for smooth, never-repeating drift. Energy controls speed through noise space. For ambient and textural content.
 
 All three support percussion interaction: when a drum hit occurs, sustained models receive an impulse that temporarily tightens damping and injects velocity. This means a pad drone's visual breathing gets kicked by the beat.
 
@@ -458,7 +478,13 @@ SLERP between two prompt embedding pairs (A and B). Three modes:
 
 When a new destination is loaded: the current blended state freezes as A, the new destination becomes B, blend resets to 0. You always travel FROM where you are TO somewhere new.
 
-{/* Screenshot: the Destination Panel showing two prompts, blend slider, and reactive mode active */}
+<div style="max-width: 420px; margin: 1rem auto;">
+
+![Destination panel — simple scene descriptions](./promptScenesSimple.png)
+
+![Destination panel — complex multi-element prompts](./promptScenesComplex.png)
+
+</div>
 
 #### Axis 4: Noise Composition (HOW the latent base evolves)
 
@@ -475,6 +501,12 @@ The angle is pre-computed from two signals blended by content type:
 - **Beat weight**: Transient-to-energy ratio. Percussive content → beats dominate. Sustained content → drift dominates.
 
 Distance property controls how far each beat moves around the circle. 0 = static noise. 1 = full revolution per energetic beat. The composition panel has two seed slots, a distance slider, and mode selection (auto/pulse/continuous).
+
+<div style="max-width: 420px; margin: 1rem auto;">
+
+![Noise composition panel — seed slots, distance slider, mode selection](./Composition-Noise.png)
+
+</div>
 
 ---
 
@@ -502,7 +534,7 @@ prominence = base × (1 + novelty + coupling) × call_response × activity_gate 
 
 Clamped to [0, 1]. This means: a rank-1 stem with high novelty, locked in with its peers, actively playing, can reach 1.0. A rank-4 stem that's silent fades to near zero. An auto stem that was invisible suddenly surges when it enters the arrangement.
 
-{/* Screenshot: the four orbs in the belly, with one glowing brighter than the others — showing prominence in action */}
+![Flower orb blooming — petals open when the block is active](./flowerOrbBlom.gif)
 
 #### The Dance Model
 
@@ -522,7 +554,7 @@ Silence behavior: either hold the last known position (default) or drift back to
 
 #### How It Looks: Orbs, Flowers, and Tendrils
 
-{/* Screenshot: the full belly scene — CrystalHeart in the center, four flower orbs around it, tendrils connecting them */}
+![The belly — CrystalHeart, flower orbs, tendrils connecting them](./fullbellyRub.gif)
 
 Each UNet block is visualized as a **flower orb** rendered with GLSL shaders:
 
@@ -538,7 +570,7 @@ Each UNet block is visualized as a **flower orb** rendered with GLSL shaders:
 - Four rendering layers: glow, main stem, bright core, and traveling pulses
 - On transients (flash > 0.5), a glowing dot travels from flower to heart
 
-The orbs are draggable via Matter.js physics — they bounce, they have inertia, they respond to each other. The heart pulses to the BPM.
+The orbs are draggable via [Matter.js](https://brm.io/matter-js/) physics — they bounce, they have inertia, they respond to each other. The heart pulses to the BPM.
 
 ---
 
@@ -546,7 +578,7 @@ The orbs are draggable via Matter.js physics — they bounce, they have inertia,
 
 #### Double-Buffered Encoding
 
-While the GPU computes frame N+1, the CPU encodes frame N as JPEG via TurboJPEG (5-10x faster than Pillow, releases the GIL) in a background thread:
+While the GPU computes frame N+1, the CPU encodes frame N as JPEG via [TurboJPEG](https://libjpeg-turbo.org) (5-10x faster than Pillow, releases the GIL) in a background thread:
 
 ```
 Frame N:     [GPU inference] [D2H]  [start encode]
@@ -564,6 +596,10 @@ Frames are delivered over WebSocket as raw binary JPEG. The consumer enforces st
 - Queue overflow → drop oldest down to target depth.
 
 **Predictive lookahead**: frames are generated for `audio_time + pipeline_latency + frame_interval + client_render_latency`. This compensates for pipeline delay so visuals match the audio the user hears at delivery time.
+
+#### The Desktop Shell
+
+The frontend runs inside [Electrobun](https://electrobun.dev) — a Bun-native alternative to Electron that uses the system webview instead of bundling Chromium. Native macOS window effects (vibrancy, transparency) via Objective-C bindings. The entire desktop app is a single lightweight binary talking to the Python backend over WebSocket.
 
 ---
 
@@ -619,20 +655,15 @@ Frames are delivered over WebSocket as raw binary JPEG. The consumer enforces st
 
 ---
 
-### Honest Limitations
+### Limitations
 
-- **SAE encoder weights waste ~104MB VRAM.** We only use the decoder at inference. The encoder loads then gets deleted — but peak allocation still happens during loading.
-- **HPSS peaks at ~1.4GB GPU per stem** during offline processing. Four stems = 5.6GB transient.
-- **The `linear` physics preset** (k=2500, m=1.0) sits at the numerical stability boundary for semi-implicit Euler at 50 FPS. It works, but it's the least robust preset.
-- **77.4% label confidence** means ~22% of features have medium or low-confidence labels. The texture block (up.0.1) is weakest at 62% high-confidence.
-- **Single-seed composition** — the circular walk explores a 2D subspace of noise space. Adding more seeds (3D+ walk) would increase diversity but complicate the beat-sync math.
-- **512x512 output** — SDXL-Turbo at 512x512 is the sweet spot for speed. Higher resolution would require either a different model or upscaling.
+- **512x512 output** — SDXL-Turbo at 512x512 is the sweet spot for speed. Higher resolution would require a different model or upscaling.
+- **77.4% label confidence** — ~22% of features have medium or low-confidence labels. The texture block (up.0.1) is weakest at 62% high-confidence.
+- **Single-seed composition** — the circular walk explores a 2D subspace of noise space. Adding more seeds would increase diversity but complicate the beat-sync math.
 
 ---
 
 ### What Claude Looked Like as a Pair Programmer
-
-This matters for understanding what ML engineering looks like in 2026.
 
 Claude didn't write the architecture. I knew I needed inline steering because hooks break compile — that insight came from days of debugging `torch._dynamo` graph breaks. Claude helped me implement `SteeredModule` cleanly, catch edge cases (like activation maps needing to be pre-allocated before warmup to bake shapes into the CUDA graph), and write the double-buffered encoding pipeline.
 
@@ -640,7 +671,7 @@ The audio DSP was mostly Claude executing on my specifications. I described the 
 
 The labeling pipeline was the most collaborative. I designed the block-specific ranking metrics and the fusion priority system. Claude built the OpenRouter client, wrote the VLM prompts, implemented the TF-IDF supplement and spatial analysis.
 
-The point: this is _pair programming_, not code generation. I provided direction and taste — what should this feel like, what's the right abstraction, where to simplify. Claude provided implementation velocity — writing cleanly, catching edge cases, parallelizing work. The result is a codebase neither of us would have built alone.
+I provided direction and taste — what should this feel like, what's the right abstraction, where to simplify. Claude provided implementation velocity — writing cleanly, catching edge cases, parallelizing work.
 
 ---
 
@@ -655,3 +686,16 @@ This project builds on work from the interpretability and real-time generation c
 - **[Overworld Engine](https://github.com/Overworldai/world_engine)** — Related work in real-time interactive generation.
 - **[R4G: Representation for Generation](https://kdidi.netlify.app/blog/ml/2025-12-31-r4g/)** — Survey of how representation models (DINOv2, SigLIP) and generative models are converging. The direction we want to take steering next — navigating representation space, not just SAE features.
 - **[Juice](https://garden.bradwoods.io/notes/design/juice)** (Brad Woods) — The design philosophy behind hambajuba's character and interaction feel. Redundant feedback channels, moment-to-moment satisfaction, the idea that soul emerges from abundantly fulfilling emotional requirements.
+
+**Models & Tools:**
+
+- **[SDXL-Turbo](https://huggingface.co/stabilityai/sdxl-turbo)** (Stability AI, Sauer et al.) — The core generation model. 1-step Adversarial Diffusion Distillation of SDXL.
+- **[TAESDXL](https://huggingface.co/madebyollin/taesdxl)** (madebyollin) — Tiny Autoencoder for SDXL. Fast VAE decode.
+- **[Demucs](https://github.com/facebookresearch/demucs)** (Meta/FAIR, Rouard et al.) — Hybrid Transformer source separation into 4 stems.
+- **[Basic Pitch](https://github.com/spotify/basic-pitch)** (Spotify, Bittner et al., ICASSP 2022) — Polyphonic pitch tracking via lightweight ONNX model.
+- **[PESTO](https://github.com/SonyCSLParis/pesto)** (Sony CSL) — Monophonic pitch estimation, 12x faster than CREPE.
+- **[Beat This!](https://github.com/CPJKU/beat_this)** (CPJKU, ISMIR 2024) — State-of-the-art beat tracking.
+- **[madmom](https://github.com/CPJKU/madmom)** (CPJKU, Bock et al.) — RNN-based onset detection.
+- **[librosa](https://librosa.org)** (McFee et al.) — Audio analysis: STFT, chroma, onset detection, spectral features.
+- **[Sethares roughness model](https://sethares.engr.wisc.edu/comprog.html)** (William Sethares; Plomp & Levelt, 1965) — Psychoacoustic dissonance from critical bandwidth interactions.
+- **[Electrobun](https://electrobun.dev)** — Bun-native desktop runtime using system webview. The desktop shell.
