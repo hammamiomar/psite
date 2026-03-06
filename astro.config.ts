@@ -71,6 +71,7 @@ export default defineConfig({
     icon(),
   ],
   vite: {
+    // @ts-expect-error - Vite version mismatch between tailwindcss (v7) and astro (v6)
     plugins: [tailwindcss()],
   },
   server: {
