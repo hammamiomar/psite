@@ -39,7 +39,7 @@ JPEG encode (TurboJPEG, background thread):             ~1.5ms (overlapped)
 Total:                                                  ~17ms
 ```
 
-Engine inference dominates at ~14ms. Everything else — the entire audio processing, physics simulation, SAE parameter computation, spatial mask selection, prompt interpolation, noise generation — fits in ~2.2ms. The design principle: make the bridge negligible so GPU inference gets the full budget.
+Engine inference dominates at ~14ms. Everything else — the entire audio processing, physics simulation, SAE parameter computation, spatial mask selection, prompt interpolation, noise generation — fits in ~2.2ms. The bridge is designed to be negligible so GPU inference gets the full budget.
 
 ---
 
@@ -271,7 +271,7 @@ This is why 50 FPS is achievable. The audio bridge adds ~1-2ms per frame, not 50
 
 ## Part II: Playing the Features
 
-Part I produces two things: a compiled CUDA graph that steers SDXL-Turbo's generation via SAE features at four attention blocks, and pre-computed audio feature arrays for every stem. Part II is the _instrument_ — how those features become interactive tools for navigating the model's space through music.
+Part I produces two things: a compiled CUDA graph that steers SDXL-Turbo's generation via SAE features at four attention blocks, and pre-computed audio feature arrays for every stem. Part II is about the instrument — how those features become something you can actually play.
 
 ---
 
@@ -388,17 +388,17 @@ At runtime, the system samples the stem's normalized pitch via `np.interp()`, ma
 
 Spatial maps combined with other axes produce distinctive results:
 
-- **Bass on down.2.1 with floor mask**: The mood/composition shifts only in the lower half of the image. The top stays stable. The image has a _horizon_ that responds to low-end energy.
-- **Vocals on up.0.0 with pitch-aligned mask**: Faces and details appear and disappear at the vertical position matching the vocal pitch. The image has a _focus point_ that tracks the melody.
+- **Bass on down.2.1 with floor mask**: The mood/composition shifts only in the lower half of the image. The top stays stable.
+- **Vocals on up.0.0 with pitch-aligned mask**: Faces and details appear and disappear at the vertical position matching the vocal pitch.
 - **Drums on mid.0 with center mask**: Abstract structural shifts concentrated in the middle. The frame borders stay stable while the center pulses.
 
-These combinations aren't programmed — they emerge from the user's choices. And because everything updates in real time, you can experiment: paint a mask, hear what it does, repaint.
+These combinations come from the user's choices, not from us programming them in. And because everything updates in real time, you can experiment: paint a mask, hear what it does, repaint.
 
 ---
 
 ### The Bridge: Physics Between Audio and Visuals
 
-Directly mapping audio amplitude to visual intensity is mechanical and jittery. The bridge sits between audio features and SAE steering, transforming reactive signals into organic motion.
+Directly mapping audio amplitude to visual intensity is mechanical and jittery. The bridge sits between audio features and SAE steering, adding weight and bounce to what would otherwise be jittery amplitude mapping.
 
 #### Mass-Spring-Damper
 
@@ -548,7 +548,7 @@ output = stage_home + intensity × (position_value - stage_home)
 **Position source** determines WHERE in the range: pitch, chroma, brightness, or tension.
 **Intensity source** determines HOW FAR from home: energy_smooth, transient, flux, or envelope.
 
-When intensity = 0, output stays at home. When intensity = 1, output reaches full position. Natural "lean into the music" behavior.
+When intensity = 0, output stays at home. When intensity = 1, output reaches full position.
 
 Silence behavior: either hold the last known position (default) or drift back to home with a 1500ms time constant.
 
@@ -671,7 +671,7 @@ The audio DSP was mostly Claude executing on my specifications. I described the 
 
 The labeling pipeline was the most collaborative. I designed the block-specific ranking metrics and the fusion priority system. Claude built the OpenRouter client, wrote the VLM prompts, implemented the TF-IDF supplement and spatial analysis.
 
-I provided direction and taste — what should this feel like, what's the right abstraction, where to simplify. Claude provided implementation velocity — writing cleanly, catching edge cases, parallelizing work.
+I decided what to build and how it should feel. Claude helped me build it fast and clean.
 
 ---
 
