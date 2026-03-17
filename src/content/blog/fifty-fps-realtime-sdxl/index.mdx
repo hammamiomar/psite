@@ -22,8 +22,6 @@ Real-time diffusion at 50 FPS. SAE-steered, audio-reactive, on a single RTX 5090
 
 This is the engineering writeup for hambajuba2ba — a music visualizer that steers SDXL-Turbo's generation process using Sparse Autoencoder features mapped to audio in real time. The system has two halves: _building the features_ (the ML engine, the audio pipeline, the labeling) and _playing the features_ (the bridge, the tools, the interface that ties it all together as an instrument). For the vision and philosophy behind this project, read [Letting Computers Dance](/blog/letting-computers-dance).
 
-Everything here was built with Claude as a pair programmer.
-
 ---
 
 ## Part I: Building the Features
@@ -200,10 +198,9 @@ We built an ensemble:
 
 **Generate 50K images** on a [Modal](https://modal.com) A100 with activation logging — for each image, record which features fired and where. ~\$10.
 
-**Rank images per feature** with block-specific metrics. This was a key design decision. Composition features (down.2.1) activate globally across the image, so we rank by mean activation. Detail features (up.0.0) fire locally, so we rank by max activation and crop the images to the region of peak activity. Texture features (up.0.1) are semi-global, so we rank by sum. Different blocks need different lenses.
+**Rank images per feature** with block-specific metrics. Composition features (down.2.1) activate globally, so we rank by mean activation. Detail features (up.0.0) fire locally, so we rank by max activation and crop to the region of peak activity. Texture features (up.0.1) are semi-global, so we rank by sum.
 
-
-**Three VLMs via [OpenRouter](https://openrouter.ai)** with block-specific prompts. This matters enormously — a generic "describe what's different" prompt fails, but "IGNORE the subject matter, focus ONLY on visual properties" for the texture block succeeds. Qwen3-VL-235B first (\$12), GLM-4.6V second (\$27), Kimi K2.5 as tiebreaker (\$36).
+**Three VLMs via [OpenRouter](https://openrouter.ai)** with block-specific prompts — a generic "describe what's different" prompt fails for texture features, but "IGNORE the subject matter, focus ONLY on visual properties" succeeds. Qwen3-VL-235B first (\$12), GLM-4.6V second (\$27), Kimi K2.5 as tiebreaker (\$36).
 
 The Kimi pass had an accident. A bug in disagreement detection (exact string match instead of semantic similarity) triggered a 99% false disagreement rate, so Kimi annotated 88% of features instead of ~30%. By the time we caught it, the money was spent. Turned out to be the best accident of the project — Kimi's over-annotation pushed high-confidence labels from 42% to 71% on the detail block and from 26% to 62% on the texture block.
 
@@ -213,7 +210,7 @@ The Kimi pass had an accident. A bug in disagreement detection (exact string mat
 
 **Label fusion** — priority-ordered: spatial override → VLM consensus → TF-IDF alignment → best guess.
 
-Result: 77.4% high-confidence labels. Ground-truth accuracy: 14/16 (87.5%). Total cost: ~\$85. The paper's single-VLM approach would have been ~\$2,860.
+Result: 77.4% high-confidence labels across all four blocks. A spot-check of 16 manually verified features matched 14 (87.5%), though that sample is small — the real validation is qualitative, in whether the labels produce coherent steering behavior at runtime. Total cost: ~\$85.
 
 ---
 
@@ -227,34 +224,28 @@ All DSP runs at upload time. Runtime is O(1) array interpolation.
 
 #### Perceptual Feature Extraction
 
-Each stem gets ~20 feature channels. The goal is to capture how humans _perceive_ the music, not just what the signal is doing.
+Each stem gets ~20 feature channels — standard spectral features (centroid, flatness, flux, HPSS, peak detection) plus several designed for this system:
 
-**Asymmetric envelope following** — the workhorse channel. Human loudness perception is fundamentally asymmetric: we notice attacks instantly but perceive decay as gradual. A one-pole IIR filter with state-dependent coefficient:
+**Asymmetric envelope following** — one-pole IIR with state-dependent coefficient:
 
 ```python
 coeff = attack_coeff if x > state else release_coeff
 state += coeff * (x - state)
 ```
 
-Per-stem presets tuned for character: drums get 2ms attack / 100ms release (50:1 ratio — ultra-punchy), vocals get 15ms / 150ms (10:1 — musical phrasing). The ratio determines the feel.
+Per-stem presets: drums get 2ms attack / 100ms release (50:1 ratio), vocals get 15ms / 150ms (10:1). The ratio determines character.
 
-**Dual-layer response** — two envelope followers with different time constants on the same energy: flash (1-5ms attack, 20-80ms release) for the immediate "pop," and sustain (10-30ms attack, 100-250ms release) for the trailing "glow." Creates a comet-tail effect. The system can sample either layer independently.
+**Dual-layer response** — two envelopes on the same energy: flash (1-5ms attack, 20-80ms release) and sustain (10-30ms attack, 100-250ms release). The system samples either independently — flash for transient response, sustain for phrasing.
 
-**Spectral flux** — the rate of spectral change. More discriminative than raw energy for rhythmic events because it responds to timbral changes, not just loudness. A soft violin entrance registers as high flux even though it's quiet.
+**Spectral centroid and flatness** — drive Bouba/Kiki audio-visual correspondence: angular visuals for harsh/noisy timbres, round for tonal. HPSS ratio gates analysis — stems >70% percussive skip harmonic features entirely.
 
-**Peak detection** — binary transient mask from spectral flux via adaptive thresholding. When this fires, it means: _something just hit_.
+**Psychoacoustic roughness** — Sethares/Plomp-Levelt dissonance: spectral peaks → pairwise critical-bandwidth interactions → summed dissonance. Vectorized via NumPy broadcasting. Drives harmonic-aware scene transitions.
 
-**Spectral centroid (brightness)** and **spectral flatness (tonality)** — centroid is the "center of mass" of the spectrum (high = bright/sharp, low = warm/dull). Flatness measures tonal vs. noise-like character (0 = pitched instrument, 1 = hi-hat). Used for Bouba/Kiki audio-visual correspondence — the psychoacoustic mapping where angular visuals correspond to harsh sounds and round visuals to tonal sounds.
+**Tonal distance** — Jensen-Shannon divergence between frame chroma and track average. Key-agnostic measure of harmonic departure.
 
-**HPSS** — harmonic-percussive source separation via median filtering (Fitzgerald, 2010) in the spectrogram domain. The ratio gates subsequent analysis: if a stem is >70% percussive, we skip harmonic features entirely (no point tracking pitch on a drum stem).
+**Pitch tracking** — [PESTO](https://github.com/SonyCSLParis/pesto) (monophonic) for vocals/bass, [Basic Pitch](https://github.com/spotify/basic-pitch) (polyphonic ONNX) for other stems.
 
-**Psychoacoustic roughness** — the Sethares/Plomp-Levelt dissonance model. For each frame: find spectral peaks, compute all pairwise critical-bandwidth interactions, sum dissonance. Fully vectorized via NumPy broadcasting (~50x over per-frame loops). This gives us _tension_ — how rough and dissonant the current moment sounds. Drives harmonic-aware scene transitions.
-
-**Tonal distance** — Jensen-Shannon divergence between each frame's chroma and the track average. Measures "how far from the home key." Key-agnostic: a modulation from C major to A minor reads as departure regardless of absolute key.
-
-**Pitch tracking** — [PESTO](https://github.com/SonyCSLParis/pesto) (monophonic, 12x faster than CREPE) for vocals and bass. [Basic Pitch](https://github.com/spotify/basic-pitch) (Spotify, polyphonic ONNX) for the "other" stem. Output: pitch_hz, pitch_confidence, pitch_normalized [0,1] for spatial mapping.
-
-**Multi-timescale novelty** — spectral flux smoothed at three BPM-scaled windows: ~0.5s (transients/fills), ~4s (phrase boundaries), ~16s (section changes/drops). Layer detection: new instrument entries via normalized flux + flatness change, debounced at 500ms.
+**Multi-timescale novelty** — spectral flux at three BPM-scaled windows: ~0.5s (transients), ~4s (phrases), ~16s (sections). Layer entry detection via normalized flux + flatness change, debounced at 500ms.
 
 #### Cross-Stem Coupling
 
@@ -280,9 +271,9 @@ Part I produces two things: a compiled CUDA graph that steers SDXL-Turbo's gener
 
 ---
 
-### The Block Config Panel: Anatomy of the Instrument
+### The Block Config Panel
 
-Each of the four UNet blocks gets its own panel. This is the primary control surface — where the user decides what the model expresses and how it responds to music.
+Each of the four UNet blocks gets its own panel.
 
 <div style="max-width: 420px; margin: 1rem auto;">
 
@@ -304,7 +295,7 @@ The feature picker lets you browse 5,120 features per block. Three modes:
 - **Search**: Type a concept ("fire," "faces," "blue") and filter all 5,120 by label and category.
 - **Direct ID**: Numeric input for jumping to any feature by number.
 
-27 category colors (scene, character, texture, mood, color, spatial, style...). Each feature shows its label, category tag, and confidence level.
+Each feature shows its label, category tag, and confidence level.
 
 <div style="max-width: 420px; margin: 1rem auto;">
 
@@ -318,7 +309,7 @@ Three-handle slider: `stage_left` (min), `stage_home` (rest), `stage_right` (max
 
 This is the "dance model" geometry. When audio energy is zero, the steering strength sits at `stage_home`. As energy rises, it moves toward `stage_right` (or `stage_left` for negative features). The physics determine _how_ it moves — bouncy, smooth, snappy.
 
-Think of it as: how far can this stem push the feature? A narrow range [-5, 0, +5] means subtle influence. A wide range [-30, 0, +30] means dramatic swings.
+Narrow range = subtle influence. Wide range = dramatic swings.
 
 #### Intensity Source
 
@@ -341,19 +332,7 @@ Each block gets a rank that determines how much visual attention its stem gets:
 | R4 | Subtle | 0.25 | Barely there |
 | A | Auto | 0.05 | Available for surprise promotion |
 
-These aren't just static weights — they're dynamically modulated by what the music is doing. More on this in the Dancer Ensemble section below.
-
-#### Auto / Manual Toggle
-
-**Auto mode**: Pick a stem, everything else is derived. The system classifies your stem (percussive vs harmonic, rhythmic vs melodic, frequency range) and auto-selects: physics preset, intensity source, response layer, spatial mask. This is the fast path — pick a stem, pick a feature, play.
-
-**Manual mode**: Full control. Physics presets, spatial painting, intensity curves, gamma adjustments.
-
-#### Advanced Controls (Manual Only)
-
-**Spatial mode** — draw or pitch-aligned (see next section).
-
-**Intensity curve** — linear (direct), gamma (power curve with adjustable exponent), or clip (1.5x boost). Gamma < 1 emphasizes quiet passages. Gamma > 1 emphasizes peaks.
+Dynamically modulated by the Dancer Ensemble (below). Auto mode derives everything from stem classification. Manual mode exposes physics presets, spatial painting, and intensity curves.
 
 ---
 
@@ -379,7 +358,7 @@ A 16x16 paintable canvas in the Block Config Panel. Left-click paints cells on, 
 
 </div>
 
-You can paint arbitrary shapes. Want "intensity" only in the left third of the image? Paint it. Want "faces" only in the center? Paint it. The mask is immediately uploaded to GPU via `copy_()` and takes effect on the next frame.
+Arbitrary shapes work — the mask is immediately uploaded to GPU via `copy_()` and takes effect on the next frame.
 
 #### Pitch-Aligned Mode
 
@@ -403,7 +382,7 @@ These combinations come from the user's choices, not from us programming them in
 
 ### The Bridge: Physics Between Audio and Visuals
 
-Directly mapping audio amplitude to visual intensity is mechanical and jittery. The bridge sits between audio features and SAE steering, adding weight and bounce to what would otherwise be jittery amplitude mapping.
+Directly mapping audio amplitude to visual intensity produces mechanical, jittery motion. The bridge adds physical weight between audio features and SAE steering.
 
 #### Mass-Spring-Damper
 
@@ -419,7 +398,7 @@ The audio feature sets the target. Physics determines how the steering value _re
 | ≈ 1 | Critically damped | Instant, no overshoot | Linear preset |
 | > 1 | Overdamped | Slow, weighty approach | Ambient (ζ≈1.25) |
 
-Research: ζ = 0.4–0.7 feels most organic for music visualization. All drum presets sit in this range.
+In practice, ζ = 0.4–0.7 feels most organic for music visualization. All drum presets sit in this range.
 
 #### BPM Scaling
 
@@ -461,25 +440,13 @@ Key: harmonic models are gated by `harmonic_confidence`. A purely percussive ste
 
 ---
 
-### The Four Axes
-
-Four parallel control systems, each manipulating a different dimension of generation. They converge in the CUDA graph.
-
-#### Axis 1: SAE Steering (WHAT is expressed)
-
-Per-stem energy → physics → strength → `SteeredModule.strength.fill_()`. The feature direction determines what concept is being injected. The spatial mask determines where. The physics determine how the strength evolves over time. The prominence determines how much this stem matters relative to others.
-
-#### Axis 2: Spatial Masks (WHERE features are applied)
-
-The 16x16 activation map on each block. Draw mode for user-designed regions. Pitch-aligned mode for melody-tracking masks. Auto-config selects presets based on stem classification: bass → floor, high → ceiling, melodic → center.
-
-#### Axis 3: Prompt Destinations (WHERE in prompt space)
+### Prompt Destinations
 
 SLERP between two prompt embedding pairs (A and B). Three modes:
 
 - **Slider**: User controls the crossfader directly. VDJ-style scene blending.
 - **Reactive**: Audio drives blend position globally. Weighted average across active stems using rank-based weights. When the music is energetic, it pushes toward B. Quiet passages drift back toward A.
-- **Linked**: A specific audio source drives the blend via the dance model — position source and intensity source determine where you lean and how far. Tension as position source = harmonic dissonance drives scene transitions. Brilliant for songs with key changes.
+- **Linked**: A specific audio source drives the blend via the dance model — position source and intensity source determine where you lean and how far. Tension as position source = harmonic dissonance drives scene transitions.
 
 When a new destination is loaded: the current blended state freezes as A, the new destination becomes B, blend resets to 0. You always travel FROM where you are TO somewhere new.
 
@@ -491,7 +458,9 @@ When a new destination is loaded: the current blended state freezes as A, the ne
 
 </div>
 
-#### Axis 4: Noise Composition (HOW the latent base evolves)
+---
+
+### Noise Composition
 
 Circular walk between two pre-computed noise tensors:
 
@@ -505,7 +474,7 @@ The angle is pre-computed from two signals blended by content type:
 - **Drift angles**: Tonal distance → angular displacement. Home key = no drift. Maximum harmonic departure = π/2.
 - **Beat weight**: Transient-to-energy ratio. Percussive content → beats dominate. Sustained content → drift dominates.
 
-Distance property controls how far each beat moves around the circle. 0 = static noise. 1 = full revolution per energetic beat. The composition panel has two seed slots, a distance slider, and mode selection (auto/pulse/continuous).
+Distance property controls how far each beat moves around the circle. 0 = static noise. 1 = full revolution per energetic beat.
 
 <div style="max-width: 420px; margin: 1rem auto;">
 
@@ -525,7 +494,7 @@ The user assigns ranks (R1–R4 or Auto). The ProminenceEngine transforms these 
 
 **Novelty boost (+30% max)**: When a stem's novelty derivative is rising — it's doing something new — it earns temporary extra attention. A fill, an ornament, a new riff.
 
-**Coupling bonus (+50% max)**: When stems at the same rank have high lock_index (>0.5), they reinforce each other. Drums and bass locked into a groove both get brighter. This is "dancing together."
+**Coupling bonus (+50% max)**: When stems at the same rank have high lock_index (>0.5), they reinforce each other. Drums and bass locked into a groove both get brighter.
 
 **Call-response (x0.6 to x1.3)**: For same-rank stems with alternating activity patterns, the currently "calling" stem (louder) gets boosted while the "responding" stem fades. Creates a ping-pong visual focus that tracks the musical conversation.
 
@@ -665,18 +634,7 @@ The frontend runs inside [Electrobun](https://electrobun.dev) — a Bun-native a
 - **512x512 output** — SDXL-Turbo at 512x512 is the sweet spot for speed. Higher resolution would require a different model or upscaling.
 - **77.4% label confidence** — ~22% of features have medium or low-confidence labels. The texture block (up.0.1) is weakest at 62% high-confidence.
 - **Single-seed composition** — the circular walk explores a 2D subspace of noise space. Adding more seeds would increase diversity but complicate the beat-sync math.
-
----
-
-### What Claude Looked Like as a Pair Programmer
-
-Claude didn't write the architecture. I knew I needed inline steering because hooks break compile — that insight came from days of debugging `torch._dynamo` graph breaks. Claude helped me implement `SteeredModule` cleanly, catch edge cases (like activation maps needing to be pre-allocated before warmup to bake shapes into the CUDA graph), and write the double-buffered encoding pipeline.
-
-The audio DSP was mostly Claude executing on my specifications. I described the asymmetric envelope behavior I wanted, the psychoacoustic roughness model, the Sethares reference. Claude implemented it, vectorized it, wrote the presets. The physics system was collaborative — I wanted mass-spring-damper, Claude worked out the BPM-scaling math to preserve damping ratio.
-
-The labeling pipeline was the most collaborative. I designed the block-specific ranking metrics and the fusion priority system. Claude built the OpenRouter client, wrote the VLM prompts, implemented the TF-IDF supplement and spatial analysis.
-
-I decided what to build and how it should feel. Claude helped me build it fast and clean.
+- **Spatial steering is block-dependent** — spatial masks work well on `down.2.1` (composition) and `up.0.1` (style/texture), but produce less predictable results on `mid.0` and `up.0.0`. Stacking spatial masks across all four blocks simultaneously compounds the unpredictability.
 
 ---
 

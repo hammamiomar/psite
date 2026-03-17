@@ -89,7 +89,7 @@ Sparse Autoencoders decompose a model's activations into interpretable features 
 
 It's worth saying — SAEs aren't definitive. One feature plus another can produce something completely unrelated to either. The decomposition gives you footholds, not ground truth. Think of it as a compass for the space inside the model — it points you in directions, and some of those directions produce genuinely cool interactions, but nobody's claiming we've fully mapped what's in there. It's a tool, and right now it's one of the best we have for steering generation through concepts instead of just prompts.
 
-(For more on SAE feature exploration, see Sangwu Lee's [Gazing in the Latent Space](https://re-n-y.github.io/devlog/rambling/sae/), and tools like [fluxlens](https://fluxlens.vercel.app/) and Gytis's [Feature Lab](https://www.featurelab.xyz/) for browsing them interactively.)
+(If you're curious about SAE features more broadly, Sangwu Lee's [Gazing in the Latent Space](https://re-n-y.github.io/devlog/rambling/sae/) is a good explainer, and tools like [fluxlens](https://fluxlens.vercel.app/) and Gytis's [Feature Lab](https://www.featurelab.xyz/) let you browse features interactively.)
 
 ---
 
@@ -170,7 +170,7 @@ This project builds on work from the interpretability and real-time generation c
 - **[Surkov et al. — Interpreting and Steering Features in Images](https://sdxl-unbox.epfl.ch)** (EPFL, NeurIPS 2025) — The SAE training on SDXL-Turbo that makes steering possible. The foundation this project is built on.
 - **[Goodfire: Painting with Concepts](https://www.goodfire.ai/research/painting-with-concepts)** — The insight that SAE features can be spatially painted onto generation at 16x16 resolution. Our spatial mask system builds directly on this.
 - **Gytis Daujotas — [Feature Lab](https://www.featurelab.xyz/)** — Interactive SAE feature explorer. ([Interpreting and Steering Features in Images](https://www.lesswrong.com/posts/Quqekpvx8BGMMcaem/interpreting-and-steering-features-in-images))
-- **Sangwu Lee — [Gazing in the Latent Space with Sparse Autoencoders](https://re-n-y.github.io/devlog/rambling/sae/)** and **[fluxlens](https://fluxlens.vercel.app/)** — SAE feature exploration and interactive browsing tool.
+- **Sangwu Lee — [Gazing in the Latent Space with Sparse Autoencoders](https://re-n-y.github.io/devlog/rambling/sae/)** and **[fluxlens](https://fluxlens.vercel.app/)** — Recommended reading on SAE features and a nice interactive browser, not used directly in this project.
 - **[StreamDiffusion v2](https://streamdiffusionv2.github.io)** — Real-time diffusion pipeline techniques. Their stream batch and residual CFG work informed early architecture decisions.
 - **[Overworld Engine](https://github.com/Overworldai/world_engine)** — Related work in real-time interactive generation.
 - **[R4G: Representation for Generation](https://kdidi.netlify.app/blog/ml/2025-12-31-r4g/)** — Survey of how representation models and generative models are converging.
