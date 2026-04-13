@@ -1,10 +1,8 @@
 ---
 import Link from '@/components/Link.astro'
 import PageHead from '@/components/PageHead.astro'
-import { buttonVariants } from '@/components/ui/button'
 import WorkTimer from '@/components/ui/work-timer'
 import Layout from '@/layouts/Layout.astro'
-import { Icon } from 'astro-icon/components'
 ---
 
 <Layout>
@@ -21,20 +19,39 @@ import { Icon } from 'astro-icon/components'
       instead of sparse autoencoders. If any of this sounds interesting, say hi.
     </p>
 
-    <div class="not-prose my-6 flex gap-4">
+  </section>
+
+  <nav class="not-prose my-8 font-mono text-sm">
+    <div class="text-muted-foreground mb-3 text-xs tracking-widest uppercase">explore</div>
+    <div class="space-y-2">
+      <a href="/blog" class="group flex items-baseline gap-3 py-1.5 transition-colors hover:text-foreground">
+        <span class="text-muted-foreground group-hover:text-primary transition-colors">~/</span>
+        <span class="font-medium">blog</span>
+        <span class="text-muted-foreground text-xs hidden sm:inline">— interpretability, music vis, ml</span>
+      </a>
+      <a href="/projects" class="group flex items-baseline gap-3 py-1.5 transition-colors hover:text-foreground">
+        <span class="text-muted-foreground group-hover:text-primary transition-colors">~/</span>
+        <span class="font-medium">projects</span>
+        <span class="text-muted-foreground text-xs hidden sm:inline">— hambajuba2ba, SubspaceLens</span>
+      </a>
+      <a href="/recipes" class="group flex items-baseline gap-3 py-1.5 transition-colors hover:text-foreground">
+        <span class="text-muted-foreground group-hover:text-primary transition-colors">~/</span>
+        <span class="font-medium">recipes</span>
+        <span class="text-muted-foreground text-xs hidden sm:inline">— because why not</span>
+      </a>
+    </div>
+    <div class="mt-4">
       <a
         href="/cv/ResumeHammamiOmar.pdf"
         download
-        class={buttonVariants({ variant: 'default' })}
+        class="group flex items-baseline gap-3 py-1.5 transition-colors hover:text-foreground"
       >
-        <Icon name="lucide:download" class="mr-2 h-4 w-4" />
-        Download CV
+        <span class="text-muted-foreground group-hover:text-primary transition-colors">~/</span>
+        <span class="font-medium">cv</span>
+        <span class="text-muted-foreground text-xs hidden sm:inline">— pdf download</span>
       </a>
-      <Link href="/projects" class={buttonVariants({ variant: 'outline' })}>
-        View Projects
-      </Link>
     </div>
-  </section>
+  </nav>
 
   <WorkTimer client:load className="my-8" />
 
