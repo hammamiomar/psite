@@ -3,7 +3,14 @@ title: 'Beyond Sparse Dictionaries: Measuring Subspace Geometry in Diffusion Tra
 description: 'I applied MCR² coding rate metrics to a frozen PixArt-α and found progressive subspace separation, dense activations, and text-independent structure — evidence that a subspace lens may complement SAE-based interpretability.'
 date: 2026-04-13
 image: ./og-header.png
-tags: ['machine-learning', 'interpretability', 'diffusion', 'representation-learning', 'mcr2']
+tags:
+  [
+    'machine-learning',
+    'interpretability',
+    'diffusion',
+    'representation-learning',
+    'mcr2',
+  ]
 authors: []
 ---
 
@@ -11,11 +18,11 @@ authors: []
 
 ## The Question
 
-Last month I built a [real-time music visualizer](/blog/letting-computers-dance) that steers SDXL-Turbo at 50 FPS by clamping Sparse Autoencoder features — 20,480 dictionary atoms, each supposedly one visual concept. It worked. But the whole time I had this nagging feeling: *is this actually how the model organizes information?*
+Last month I built a [real-time music visualizer](/blog/letting-computers-dance) that steers SDXL-Turbo at 50 FPS by clamping Sparse Autoencoder features — 20,480 dictionary atoms, each supposedly one visual concept. It worked. But the whole time I had this nagging feeling: _is this actually how the model organizes information?_
 
-SAEs assume activations are **sparse** — each input decomposes into a handful of active atoms from a big dictionary. But there's growing evidence that transformers actually learn *factored representations* — different concepts occupy orthogonal subspaces, and within each subspace, the representations are **dense, not sparse** ([Shai et al., 2026](https://arxiv.org/abs/2602.02385)). If that's true, a sparse dictionary might not be the right lens for understanding these models.
+SAEs assume activations are **sparse** — each input decomposes into a handful of active atoms from a big dictionary. But there's growing evidence that transformers actually learn _factored representations_ — different concepts occupy orthogonal subspaces, and within each subspace, the representations are **dense, not sparse** ([Shai et al., 2026](https://arxiv.org/abs/2602.02385)). If that's true, a sparse dictionary might not be the right lens for understanding these models.
 
-So I went looking for a different framework. I found it in [*Principles and Practice of Deep Representation Learning*](https://ma-lab-berkeley.github.io/deep-representation-learning-book/index.html) from the Ma group at Berkeley.
+So I went looking for a different framework. I found it in [_Principles and Practice of Deep Representation Learning_](https://ma-lab-berkeley.github.io/deep-representation-learning-book/index.html) from the Ma group at Berkeley.
 
 ---
 
@@ -27,12 +34,12 @@ These are complementary lenses, not competitors. SAEs decompose into sparse feat
 
 Both approaches require running images through the model to collect activations. The difference is what happens next. [TIDE](https://arxiv.org/abs/2503.07050) trains a separate SAE on each layer's activations — hours of GPU compute on 80K images per layer. SubspaceLens computes eigendecompositions of covariance matrices — seconds of CPU on 500 images. No learned parameters, no reconstruction loss to tune, no sparsity hyperparameter to sweep — though it does have its own hyperparameters (coding precision ε, subspace rank) that affect the results.
 
-| | TIDE (SAE) | SubspaceLens (MCR²) |
-|---|---|---|
-| **Inference** | 80K images through PixArt | 500 images through PixArt |
+|                    | TIDE (SAE)                  | SubspaceLens (MCR²)                    |
+| ------------------ | --------------------------- | -------------------------------------- |
+| **Inference**      | 80K images through PixArt   | 500 images through PixArt              |
 | **Post-inference** | Train SAE per layer (hours) | Eigendecomposition per layer (seconds) |
-| **Assumption** | 5% sparsity | Low-dim subspaces (can be dense) |
-| **Model** | PixArt-α, 28 layers | PixArt-α, 28 layers |
+| **Assumption**     | 5% sparsity                 | Low-dim subspaces (can be dense)       |
+| **Model**          | PixArt-α, 28 layers         | PixArt-α, 28 layers                    |
 
 ---
 
@@ -40,7 +47,7 @@ Both approaches require running images through the model to collect activations.
 
 ### Coding Rate and Rate Reduction
 
-The book's argument: a deep network *can* transform data into a union of low-dimensional linear subspaces, one per concept — and the book constructs specific architectures (ReduNet, CRATE) that do this by design. Whether a network trained with a *different* objective (like denoising) also produces this structure is an open question. You measure how close a representation is to this ideal with the **coding rate** — how many bits you'd need to encode a set of vectors under a Gaussian codebook at precision $\varepsilon$:
+The book's argument: a deep network _can_ transform data into a union of low-dimensional linear subspaces, one per concept — and the book constructs specific architectures (ReduNet, CRATE) that do this by design. Whether a network trained with a _different_ objective (like denoising) also produces this structure is an open question. You measure how close a representation is to this ideal with the **coding rate** — how many bits you'd need to encode a set of vectors under a Gaussian codebook at precision $\varepsilon$:
 
 $$R_\varepsilon(\mathbf{Z}) = \frac{1}{2} \log \det\left(\mathbf{I}_d + \frac{d}{N\varepsilon^2} \mathbf{Z}\mathbf{Z}^\top\right)$$
 
@@ -52,7 +59,7 @@ where:
 - $\mathbf{Z}\mathbf{Z}^\top \in \mathbb{R}^{d \times d}$ — the unnormalized sample covariance.
 - The $\log\det$ measures the log-volume of the ellipsoid spanned by the data relative to $\varepsilon$-balls — more volume, more bits needed.
 
-This is the *Gaussian* coding rate — exact when data is Gaussian, an upper bound otherwise. The true rate-distortion function for arbitrary distributions is intractable. The Gaussian version is the one used throughout the MCR² literature because it's closed-form and its gradient decomposes cleanly into expansion and compression operators.
+This is the _Gaussian_ coding rate — exact when data is Gaussian, an upper bound otherwise. The true rate-distortion function for arbitrary distributions is intractable. The Gaussian version is the one used throughout the MCR² literature because it's closed-form and its gradient decomposes cleanly into expansion and compression operators.
 
 In practice, we use **Sylvester's determinant identity** to make this cheaper:
 
@@ -90,7 +97,7 @@ $$\mathbf{C}_k^\ell = \alpha_k\left(\mathbf{I}_d + \alpha_k \, \mathbf{Z}^\ell \
 
 where $\alpha = d/(N\varepsilon^2)$, $\;\alpha_k = d/(N_k\varepsilon^2)$, $\;\gamma_k = N_k/N$, and $\mathbf{\Pi}_k \in \mathbb{R}^{N \times N}$ is a diagonal matrix encoding membership in class $k$.
 
-In the book's white-box architectures (ReduNet, CRATE), each layer is *constructed* to perform one step of projected gradient ascent on $\Delta R$:
+In the book's white-box architectures (ReduNet, CRATE), each layer is _constructed_ to perform one step of projected gradient ascent on $\Delta R$:
 
 $$\mathbf{z}^{\ell+1} = \mathbf{z}^\ell + \eta\left(\mathbf{E}^\ell \, \mathbf{z}^\ell \;-\; \sum_{k=1}^{K} \gamma_k \, \mathbf{C}_k^\ell \, \mathbf{z}^\ell\right)$$
 
@@ -127,6 +134,7 @@ I took a frozen PixArt-α (28 transformer blocks, $d = 1152$) and hooked every b
 **500 images**: 25 subjects × 20 seeds each. "A lion, detailed photograph" → 20 images from different random noise. "A cathedral, detailed photograph" → 20 more. Bare subjects, no adjectives or settings — so the only within-class variation comes from the model's stochasticity.
 
 I measured with **two label schemes** on the same activations:
+
 - **Coarse (5-class)**: animals vs. buildings vs. food vs. vehicles vs. landscapes
 - **Fine (25-class)**: lion vs. hummingbird vs. octopus vs. cathedral vs. ...
 
@@ -141,7 +149,7 @@ I also hooked the unconditional branch (no text prompt, just null embeddings) to
 ### $\Delta R$ increases 33× across layers
 
 ![Rate reduction across layers](./fig1_delta_r.png)
-*$\Delta R$ from layer 0 to layer 27, with a consistent dip at layers 15–18.*
+_$\Delta R$ from layer 0 to layer 27, with a consistent dip at layers 15–18._
 
 From ~30 at layer 0 to ~857 at layer 27. The dip at L15–18 is real and consistent across timesteps — those layers appear to mix subspaces for compositional reasoning before the final layers re-separate.
 
@@ -150,7 +158,7 @@ The trend is consistent across all 12 configurations I tested in a prior sweep (
 ### 22 dimensions out of 1152
 
 ![Effective rank across layers](./fig8_effective_rank.png)
-*Effective rank peaks at ~69 around layer 10, then collapses to ~22 by layer 27.*
+_Effective rank peaks at ~69 around layer 10, then collapses to ~22 by layer 27._
 
 By the output layer, the model has compressed its representations into **~22 effective dimensions** — 98% of the 1152-dimensional space is unused. A caveat: with only 500 samples in 1152 dimensions, the sample covariance is rank-deficient (at most rank 500), so some of this collapse may reflect finite-sample effects rather than true low-dimensionality. Still, the effective rank drops from ~69 at layer 10 to ~22 at layer 27 — that relative compression within the same sample budget is a real signal.
 
@@ -159,17 +167,17 @@ By the output layer, the model has compressed its representations into **~22 eff
 I ran an earlier sweep across 12 configurations (4 timesteps × 3 CFG scales) with more varied prompts — adjectives, settings, the works. (Those prompts used Cartesian product variation — adjectives × subjects × settings — which inflated within-class volume and masked per-subject compression. Bare-subject prompts isolate the signal. More on that below.) The pattern showed up everywhere:
 
 ![Rate landscape across all configs](./fig5_rate_landscape.png)
-*$\Delta R$ across all 12 configs. The L14 peak and L15–18 dip are universal — they don't depend on timestep or guidance strength.*
+_$\Delta R$ across all 12 configs. The L14 peak and L15–18 dip are universal — they don't depend on timestep or guidance strength._
 
 And when I tracked subspace overlap across layers, layer 14 kept coming up as the point of maximum orthogonality — the moment where concept subspaces are most separated:
 
 ![Overlap trajectory across timesteps](./fig6_overlap_trajectory.png)
-*Mean off-diagonal overlap drops to its minimum around L14, then rebounds. Earlier timesteps peak earlier (L11), later ones need more layers.*
+_Mean off-diagonal overlap drops to its minimum around L14, then rebounds. Earlier timesteps peak earlier (L11), later ones need more layers._
 
 Earlier denoising steps achieve peak separation sooner — the model needs fewer layers to separate coarse structure from noisy inputs, but nearly the full network to separate fine structure from near-clean inputs. Step 19 (almost done denoising) doesn't hit peak orthogonality until layer 25.
 
 ![5×5 overlap heatmap across layers](./fig7_overlap_heatmap.png)
-*The 5×5 category overlap matrix at four layers. By L14, food and buildings barely share any variance. By L27, they've partially re-entangled.*
+_The 5×5 category overlap matrix at four layers. By L14, food and buildings barely share any variance. By L27, they've partially re-entangled._
 
 Whatever the model is doing at layer 14, it appears to be a transition point for concept separation. The layers after it sacrifice some orthogonality — possibly to prepare representations for the decoder, expanding globally rather than keeping subspaces clean.
 
@@ -179,35 +187,35 @@ It's reminiscent of a UNet, actually. In a UNet you compress down to a bottlenec
 
 This is the key result. Same data, two ways of grouping:
 
-| | L0 | L14 | L27 |
-|---|---|---|---|
-| **Coarse** $R_\varepsilon^c / R_\varepsilon$ | 0.67 | 0.37 | 0.35 |
-| **Fine** $R_\varepsilon^c / R_\varepsilon$ | 0.47 | 0.11 | **0.10** |
+|                                              | L0   | L14  | L27      |
+| -------------------------------------------- | ---- | ---- | -------- |
+| **Coarse** $R_\varepsilon^c / R_\varepsilon$ | 0.67 | 0.37 | 0.35     |
+| **Fine** $R_\varepsilon^c / R_\varepsilon$   | 0.47 | 0.11 | **0.10** |
 
-With fine labels, each subject's 20 representations occupy only **10%** of the total volume by layer 27. They start at 47%. The ratio $R_\varepsilon^c / R_\varepsilon$ drops from 0.47 to 0.10. Fine-label $\Delta R$ ($857$) is consistently ~40% higher than coarse ($616$), suggesting hierarchical structure: lions separate from cathedrals *and* animals separate from buildings.
+With fine labels, each subject's 20 representations occupy only **10%** of the total volume by layer 27. They start at 47%. The ratio $R_\varepsilon^c / R_\varepsilon$ drops from 0.47 to 0.10. Fine-label $\Delta R$ ($857$) is consistently ~40% higher than coarse ($616$), suggesting hierarchical structure: lions separate from cathedrals _and_ animals separate from buildings.
 
 An important caveat: I haven't run a permuted-labels baseline. Without checking whether random label assignments on the same activations produce similarly high $\Delta R$, I can't fully rule out that the metric is picking up generic low-rank structure rather than label-aligned subspaces. The fact that fine labels produce higher $\Delta R$ than coarse is encouraging — random labels shouldn't show that pattern — but it's not a substitute for the control.
 
 ![Rate decomposition: coarse vs fine](./fig2_rate_decomposition.png)
-*Same 500 images. Left: coarse labels mask the compression. Right: fine labels reveal it.*
+_Same 500 images. Left: coarse labels mask the compression. Right: fine labels reveal it._
 
-$R_\varepsilon^c$ does still grow in absolute terms (26 → 91 nats) — the model preserves instance-level variation because it needs to denoise *this specific* lion, not classify lions generically. But proportionally it shrinks from 47% to 10%. This is the generative regime: absolute volumes grow, relative structure tightens.
+$R_\varepsilon^c$ does still grow in absolute terms (26 → 91 nats) — the model preserves instance-level variation because it needs to denoise _this specific_ lion, not classify lions generically. But proportionally it shrinks from 47% to 10%. This is the generative regime: absolute volumes grow, relative structure tightens.
 
 ### Conditional and unconditional converge
 
 ![Conditional vs unconditional rate reduction](./fig4_cond_uncond.png)
-*Conditional (with text) and unconditional (null text) $\Delta R$ across layers. By L27, the difference is 0.1 nats.*
+_Conditional (with text) and unconditional (null text) $\Delta R$ across layers. By L27, the difference is 0.1 nats._
 
-The model runs two forward passes per denoising step: one with the text prompt, one with nothing. I hooked both. By layer 27, conditional $\Delta R$ = 615.8 and unconditional = 615.7. At earlier layers the gap is larger — at L14, unconditional actually *exceeds* conditional by ~19 nats — so the convergence is specific to late layers.
+The model runs two forward passes per denoising step: one with the text prompt, one with nothing. I hooked both. By layer 27, conditional $\Delta R$ = 615.8 and unconditional = 615.7. At earlier layers the gap is larger — at L14, unconditional actually _exceeds_ conditional by ~19 nats — so the convergence is specific to late layers.
 
 This suggests the late-layer subspace geometry doesn't depend strongly on text conditioning. But the unconditional branch still processes latent noise that was initialized per-image, so the structure could reflect the noise initialization as much as the architecture itself. More work is needed to disentangle these.
 
 ### Activations are dense, not sparse
 
-Hoyer sparsity ranges from 0.25 to 0.71 across layers. The most structured layers (L17–L21) are the *densest* (0.25–0.35) — the opposite of what a sparse dictionary assumes.
+Hoyer sparsity ranges from 0.25 to 0.71 across layers. The most structured layers (L17–L21) are the _densest_ (0.25–0.35) — the opposite of what a sparse dictionary assumes.
 
 ![25-subject overlap heatmap](./fig3_overlap_heatmap.png)
-*Subspace overlap at layer 14. Block-diagonal = hierarchical nesting. Lions overlap more with elephants than with cathedrals.*
+_Subspace overlap at layer 14. Block-diagonal = hierarchical nesting. Lions overlap more with elephants than with cathedrals._
 
 ---
 
@@ -255,5 +263,3 @@ def coding_rate(Z: Tensor, eps: float) -> Tensor:
 No GPU cluster, no SAE training, no feature labeling. Eigenvalues and a log-determinant. Whether this is measuring what we think it's measuring is the next question.
 
 ---
-
-*If you're working on DiT interpretability or subspace-aware steering, reach out: hhammamiomar@gmail.com*
