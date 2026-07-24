@@ -71,7 +71,9 @@ export default defineConfig({
     icon(),
   ],
   vite: {
-    plugins: [tailwindcss()],
+    // cast: @tailwindcss/vite types target a different Vite major than Astro's
+    // bundled Vite, which fails `astro check` (broke CI deploys since Apr 27)
+    plugins: [tailwindcss() as any],
   },
   server: {
     port: 1234,

@@ -3,7 +3,7 @@ import type { IconMap, SocialLink, Site } from '@/types'
 export const SITE: Site = {
   title: 'Omar Hammami',
   description:
-    'Personal website of Omar Hammami',
+    'ML engineer & interpretability researcher in NYC — real-time SAE-steered diffusion, feature visualization for DINOv2, subspace geometry in diffusion transformers.',
   href: 'https://hammamiomar.xyz',
   author: 'Omar Hammami',
   locale: 'en-US',

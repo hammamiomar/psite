@@ -1,0 +1,168 @@
+---
+title: 'DinoDreamer: An Instrument for Seeing Inside DINOv2'
+description: 'A work-in-progress feature-visualization instrument for navigating frozen representation models — DINOv2, an archetypal SAE, and SteerViT. An honest checkpoint: what I built, what I believe, and what I still cannot claim.'
+date: 2026-06-23
+tags:
+  [
+    'machine-learning',
+    'interpretability',
+    'feature-visualization',
+    'dinov2',
+    'representation-learning',
+  ]
+authors: []
+---
+
+For the past year I've been building tools to _move around inside_ generative models instead of just prompting them. This is the newest one, and the least finished. I'm writing it down now — mid-build, before there's a clean result — because for this particular project the honest version is more useful than a polished one would be.
+
+DinoDreamer is a feature-visualization instrument for frozen vision representation models: [DINOv2](https://arxiv.org/abs/2304.07193), an archetypal sparse autoencoder trained on top of it, and [SteerViT](https://arxiv.org/abs/2604.02327). You pick a seed, a target somewhere in the model's representation space, and a way to parameterize the image — and it synthesizes, by gradient ascent, an image that drives that target. Then you can change the target mid-flight and watch the image follow.
+
+{/* TODO: export branches.gif (one seed forking into fifteen RA-SAE explorations,
+3-column grid: organic / textile / frequency lenses) into this folder, then restore:
+
+<div style="max-width: 520px; margin: 1.5rem auto;">
+
+![One seed forking into fifteen RA-SAE explorations — a 3-column grid where each column is a different "lens" (organic / textile / frequency) drifting apart from the same starting image](./branches.gif)
+
+</div>
+
+_One seed, fifteen lenses. Each column commits to a different family of targets and parameterizations, then diverges. More on what this is — and isn't — below._
+*/}
+
+_(A demo clip — one seed forking into fifteen diverging branch explorations — is being exported for the web. The run it shows is described in "A single seed, fifteen lenses" below.)_
+
+---
+
+## The bottom line
+
+I want to be clear about what I believe and how strongly, before I show you anything pretty. (This whole post is written in the spirit of [reasoning transparency](https://coefficientgiving.org/research/reasoning-transparency/) — open with the summary, flag confidence, give a reason for nearly every claim.)
+
+- **What it is.** An instrument, not an experiment. A composable pipeline — _seed → augmentation → parameterization → target → objective → regularizer_ — over frozen DINOv2-family models, with every run producing an image **and** a measured panel of what the optimizer actually did.
+- **What I'm confident in (high).** The engine faithfully maximizes the objective you name and records it. That part is just gradient ascent plus logged metrics; there's no room for self-deception in the number.
+- **What I do _not_ claim (and this is the important one).** That the resulting images are evidence of what DINOv2 "really" represents. Feature visualization is known to be unreliable — synthesized images can be manipulated to mislead (Geirhos et al., 2023), and [natural exemplars often explain a feature better than a synthesized one](https://arxiv.org/abs/2010.12606) (Borowski et al., 2020). I treat a synthesized image as _one projection_ of a target, never as ground truth.
+- **The actual bet (a hope, not a result).** That making feature visualization _interactive and measured_ — letting you sweep a target, branch it, and watch the panel — is more honest than any single cherry-picked still. I believe this. I have not shown it.
+- **Status.** The headless engine works (render, explore, branch/fork, field sweeps, cloud lanes). Real-time interactivity and the experiments that would test the bet are still ahead.
+
+If you only read this far: this is a checkpoint on a tool I think is worth building, plus a hypothesis I haven't earned the right to claim yet.
+
+---
+
+## How I got here
+
+I came into machine learning through data visualization, and the lesson that stuck was that the most valuable thing you can do is _show people what's hidden_. Everything since has been a variation on that.
+
+Two springs ago I built a [real-time, SAE-steerable music visualizer](/blog/letting-computers-dance) — SDXL-Turbo driven at 50 FPS by clamping sparse-autoencoder features, composition near the bottleneck, texture near the decoder. It worked, and it was the first time I felt like I was steering a model through _concepts_ instead of conditions. But the more I used it, the more the SAE bothered me. Sparse dictionaries are a hypothesis about how the model organizes information, not a fact about it — and one feature plus another routinely produced something unrelated to either. SAEs gave me footholds, not ground truth.
+
+So I went looking for a different lens. I read the Ma Lab's _Principles and Practice of Deep Representation Learning_ and spent a while [measuring subspace geometry in a diffusion transformer with coding-rate metrics](/blog/subspacelens) — no SAE, just eigenvalues. Then I spent **two weeks** trying to pull clean per-expert representations out of a mixture-of-experts diffusion transformer, convinced each expert did its own semantic thing. It didn't. The MoE layer was doing what MoE layers do — helping it scale — and I had been projecting structure I wanted onto a model that wasn't built to give it to me.
+
+That failure was the useful part. I stopped trying to force black-box _generative_ models to be interpretable. I half-suspect the performance comes _from_ them being black boxes; fighting that felt like a losing battle. So I changed targets: away from generation, toward models that are built to _represent_. Representation models, with no decoder bias in the way.
+
+I wanted to visualize DINOv2 directly. And then I read [Thomas Fel's work](https://arxiv.org/abs/2510.08638), and it reframed the whole thing — because if a model really does learn coherent representations, then its space has a _shape_ worth navigating, not just directions worth clamping. That's the project this post is about.
+
+---
+
+## What DinoDreamer is
+
+The core idea is small: feature visualization is gradient ascent on an image to maximize some target inside a frozen model,
+
+$$
+\mathbf{x}^\star = \arg\max_{\mathbf{x}}\; \mathcal{L}_v\big(\tau(\mathbf{x})\big),
+$$
+
+where $\mathcal{L}_v$ reads a target out of the model and $\tau$ is a stochastic augmentation that keeps the optimizer honest. Naïvely run, this produces high-frequency, adversarial-looking noise — which is exactly why a generation of feature-visualization research has been about _how you constrain the search_.
+
+DinoDreamer's bet is that those constraints shouldn't be hidden defaults — they should be **knobs**. Every part of that one equation becomes an axis you control, and every axis is a real method from the literature:
+
+| Axis | What you pick | Grounded in |
+| --- | --- | --- |
+| **Feature source** | DINOv2 directions, archetypal-SAE atoms, or SteerViT text targets | [DINOv2](https://arxiv.org/abs/2304.07193); archetypal SAE; [SteerViT](https://arxiv.org/abs/2604.02327) |
+| **Seed** | noise, or a real image | [Olah et al.](https://distill.pub/2017/feature-visualization/) (noise); [Feature Accentuation](https://arxiv.org/abs/2402.10039) (image-seeded) |
+| **Parameterization** | pixel, Fourier, MACO (phase-only), DAS pyramid, Gabor | [Olah](https://distill.pub/2017/feature-visualization/) (Fourier); [MACO](https://arxiv.org/abs/2306.06805); [Direct Ascent Synthesis](https://arxiv.org/abs/2502.07753) (pyramid) |
+| **Target** | an atom $D_i$, its code $Z_i$, a prompt delta, or a raw direction | [Rabbit Hull](https://arxiv.org/abs/2510.08638); [SteerViT](https://arxiv.org/abs/2604.02327) |
+| **Objective** | cosine to an atom, code magnitude, prompt contrast, weighted sums | — |
+| **Regularizer** | none, or a latent reference that tethers you to the seed | [Feature Accentuation](https://arxiv.org/abs/2402.10039) |
+
+A few of these are worth unpacking, because the choices encode what I learned the hard way.
+
+**The parameterization is where honesty lives or dies.** The default is [MACO](https://arxiv.org/abs/2306.06805) (Fel et al.): instead of optimizing pixels, you optimize only the _phase_ of the image's Fourier spectrum while holding its magnitude fixed to the average of natural images. The motivation is psychophysical — humans recognize objects by phase, not magnitude — and the effect is that every intermediate image is plausible in the frequency domain _without_ a learned image prior smuggling in its own biases. That last part matters to me more than the prettiness: a GAN prior makes gorgeous visualizations, but then you can't tell what came from the model and what came from the prior. MACO keeps the search faithful to DINOv2 alone.
+
+**The feature source I care most about is the archetypal SAE.** This is the [32,000-atom dictionary](https://arxiv.org/abs/2510.08638) Fel et al. trained on DINOv2-with-registers, where each atom is constrained to lie in the _convex hull of real activations_. That constraint is the whole point: the atoms stay in-distribution and reproduce across training runs, which ordinary SAEs notoriously don't. In the code I'm careful never to call an atom a "concept" — a unit is the reconstruction contribution $Z_i D_i$, and "concept" is a _human_ interpretation of that contribution, not a primitive in the tensor.
+
+**The regularizer is how you ask a gentler question.** Seeded from a real image with a latent-reference penalty — the [feature-accentuation](https://arxiv.org/abs/2402.10039) recipe (Hamblin, Fel et al.) — the optimizer pushes toward a target while staying tethered to where it started. I think of it as _tether and push_: take a real photo, fix its activation as a reference, then walk toward an atom while a leash holds you near the original. The question changes from "what does this feature look like from scratch?" to "what in _this image_ would the model see more of, if you nudged it?"
+
+Today all of this runs headless — you write a small script of moves, mark checkpoints, fork an exploration into branches, and get back a video plus a metrics log. The real-time, anyone-can-touch-it interface that the music visualizer had is the goal, not the current state. I'd rather have the honest engine first.
+
+---
+
+## A single seed, fifteen lenses
+
+The demo run works like this: it starts from a single seed image, holds it long enough to settle, then **forks into fifteen branches** that share nothing but their origin. The three columns are three deliberately different "worlds": one organic (atoms that bloom and drift, MACO phase-travel), one textural (neighborhood walks across related atoms), one high-frequency and almost adversarial (Fourier and pyramid parameterizations pushed hard).
+
+I built it this way on purpose, and the purpose is a confession about feature visualization: **it is trivially easy to cherry-pick.** Run one target, one parameterization, pick the prettiest frame, and you can make a model "say" almost anything. So the design principle I keep coming back to is that there is _no correct output_ — a target is a preset, not a destination the model wants to reach. The instrument should show you the model's actual reality under your settings, including when that reality is ugly, high-frequency, or refuses to resolve into anything legible. The chaos column is in the grid on purpose. Hiding it would be the lie.
+
+Forking many lenses at once is the antidote I have so far: don't trust one image, watch a family of them diverge from the same seed and judge the _distribution_. It's not a proof of anything. It's a way to make the cherry-picking visible instead of silent.
+
+---
+
+## What this is evidence of — and what it isn't
+
+This is the section I'd want a skeptical reader to hold me to.
+
+A synthesized image that maximizes atom $D_i$ is **evidence about the optimization**, not about the model's semantics. It tells you, reliably: _this is what gradient ascent under these constraints produced when asked to drive this target._ Everything past that is interpretation, and interpretation of feature visualizations has a [bad track record](https://arxiv.org/abs/2010.12606). The honest reading of a single DinoDreamer frame is narrow:
+
+- It is **not** proof DINOv2 has a clean, human-shaped concept for whatever you think you see.
+- It **is** a projection of a direction (or region) in the representation space into pixels — one of many possible, conditioned entirely on the knobs.
+- Its value is **comparative and interactive**: how does the image change as you sweep the target, swap the parameterization, tighten the leash? The motion carries more signal than any still.
+
+So where does my confidence actually sit? I'd put it like this. That the engine optimizes and measures what it says — near-certain. That a _moving, branching, measured_ exploration is harder to fool yourself with than a static gallery — I believe it, maybe 70%. That any of this reveals something true about DINOv2's internal structure that we couldn't get more cheaply from natural exemplars — genuinely unknown, and I'd be unsurprised to be wrong. The reason I'm building the tool anyway is that you can't run the experiment that would settle it without the tool.
+
+---
+
+## The hypothesis I actually want to test
+
+Here's the part that makes this more than a pretty toy, and the reason Fel's [_Into the Rabbit Hull_](https://arxiv.org/abs/2510.08638) reframed the project for me.
+
+The default mental model of these spaces — the Linear Representation Hypothesis — says concepts are roughly orthogonal _directions_, and you steer by adding a direction vector. Rabbit Hull argues something more interesting about DINOv2 specifically: that its representations are organized as **convex regions around archetypes** rather than unbounded linear directions — tokens behave like convex mixtures of a few landmarks ("a rabbit among animals, brown among colors, fluffy among textures"), which the paper formalizes as the _Minkowski Representation Hypothesis_. Concepts as _membership in a bounded region_, not displacement along an axis.
+
+If that's even partly right, it changes how you should _move_. Steering vector-to-vector — linearly interpolating between two atoms — would cut straight across the space and likely leave the manifold, producing exactly the incoherent mush that gives feature visualization its bad name. Moving _with_ the geometry — between archetypes, along the hull, following the curve instead of the chord — should stay coherent. That is a concrete, falsifiable difference, and an instrument that can fork, repel branches apart, and walk an atom's neighborhood is precisely the apparatus you'd need to test it.
+
+I have **not** run this experiment. I want to be unambiguous about that — it's the next real question, not a finding. The prediction is specific (geometry-respecting trajectories should stay more on-manifold and more legible than linear ones, by some measure I still have to pin down), which is the only kind of hypothesis worth having, and the kind that can embarrass me. Good.
+
+---
+
+## What would change my mind
+
+Things that would make me update, in roughly the order I plan to chase them:
+
+1. **A causal-understanding test.** Borrow the [Zimmermann/Borowski paradigm](https://arxiv.org/abs/2010.12606): can people (or a probe) predict a unit's behavior _better_ after seeing a DinoDreamer exploration than after seeing natural exemplars? If interactive feature viz doesn't beat a contact sheet of real images, the central bet is wrong, and I should know that early.
+2. **Geometry vs. line.** Build the on-manifold metric and actually compare Minkowski-respecting movement against linear steering. If there's no measurable difference, the Rabbit Hull framing buys me nothing operational and I drop it.
+3. **The real-time gate.** The music visualizer earned its keep by being _live_. If DinoDreamer can't get there — if gradient ascent on DINOv2 is too slow to feel like an instrument rather than a render farm — the "anyone can explore" mission is on hold regardless of how good the epistemics are.
+
+It's also entirely possible the answer is dull: that feature visualization of a self-supervised model is mostly beautiful and not very informative, and the honest thing will be to say so. I'd count that as a real result too.
+
+---
+
+## Why bother
+
+People are scared of AI, and a lot of that fear is just the texture of not understanding — of being told there's a black box steering things and no way in. The interpretability community has extraordinary tools, but they mostly live in papers and UMAPs and talk to themselves. The last time the public got a genuine intuition for what's inside these models was Deep Dream, a decade ago.
+
+I don't think the answer is to pretend the box is transparent. It isn't. But I refuse the other extreme — that we all just accept a black box _as_ a black box and get on with it. The models were trained on our data; we should be able to look back in. What I'm reaching for is something more like a **whitebox with holes**: not a full explanation, but an honest, navigable, public window — one that shows you the holes, too.
+
+DinoDreamer is my attempt at the window. It is unfinished, and I've tried here to be exact about which parts are built, which parts are believed, and which parts are just hoped. That seemed like the right way to document a tool whose entire reason for existing is to make a model tell you the truth about itself.
+
+---
+
+## Credits & lineage
+
+This sits on top of a specific body of work, and the instrument is mostly a faithful assembly of other people's methods into one place you can turn the knobs:
+
+- **[Feature Visualization](https://distill.pub/2017/feature-visualization/)** — Olah, Mordvintsev & Schubert (Distill, 2017). The origin: gradient ascent + Fourier preconditioning + augmentation, and the framing of directions-in-activation-space.
+- **[Unlocking Feature Visualization with Magnitude Constrained Optimization (MACO)](https://arxiv.org/abs/2306.06805)** — Fel, Boissin, Boutin et al. (NeurIPS 2023). The phase-only parameterization that keeps visualizations in-distribution without a learned prior. The default in DinoDreamer.
+- **[Feature Accentuation](https://arxiv.org/abs/2402.10039)** — Hamblin, Fel, Saha, Konkle & Alvarez (2024). Image-seeded visualization — the "tether and push" regularizer.
+- **[Direct Ascent Synthesis](https://arxiv.org/abs/2502.07753)** — Fort & Whitaker (2025). Multi-scale / pyramid optimization, the hidden generative capacity of discriminative models.
+- **Archetypal SAE: Adaptive and Stable Dictionary Learning** — Fel, Lubana, Prince, Kowal et al. (ICML 2025). Stable, reproducible dictionaries with atoms pinned to the convex hull of real activations. _(The 32k DINOv2 dictionary I use comes from its application in Rabbit Hull, above.)_
+- **[Into the Rabbit Hull](https://arxiv.org/abs/2510.08638)** — Fel, Wang et al. (ICLR 2026). The 32k-atom DINOv2 dictionary and the Minkowski Representation Hypothesis — the geometry I want to navigate.
+- **[Steerable Visual Representations (SteerViT)](https://arxiv.org/abs/2604.02327)** — Ruthardt, Gaur, Ramanan, Tapaswi & Asano (2026). Text-steerable DINOv2 features — the prompt-target source.
+- And the two posts this grew out of: the [music visualizer](/blog/letting-computers-dance) and the [subspace-geometry detour](/blog/subspacelens).
+
+_Code release is in progress; the engine is being readied to open up. If you want to talk about any of this — especially the parts I marked as "unproven" — that's exactly the conversation I want to have._
