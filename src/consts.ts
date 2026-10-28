@@ -4,7 +4,7 @@ export const SITE: Site = {
   title: 'Omar Hammami',
   description:
     'ML engineer & interpretability researcher in NYC — real-time SAE-steered diffusion, feature visualization for DINOv2, subspace geometry in diffusion transformers.',
-  href: 'https://hammamiomar.xyz',
+  href: 'https://hammamiomar.com',
   author: 'Omar Hammami',
   locale: 'en-US',
   featuredPostCount: 2,
