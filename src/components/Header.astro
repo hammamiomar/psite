@@ -1,36 +1,99 @@
 ---
 import Link from '@/components/Link.astro'
-import ThemeToggle from '@/components/ThemeToggle.astro'
-import { NAV_LINKS, SITE } from '@/consts'
-import { Image } from 'astro:assets'
-import logo from '../../public/hambaLogoTrans.png'
+import { SITE } from '@/consts'
+
+const isHome = Astro.url.pathname === '/'
 ---
 
-<header transition:persist>
+<header class="border-border border-b">
   <div
-    class="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3"
+    class="mx-auto flex max-w-[1120px] flex-col gap-3 px-5 py-4 sm:px-8 md:flex-row md:items-center md:justify-between"
   >
-    <Link href="/" class="flex shrink-0 items-center justify-center gap-3">
-      <Image src={logo} alt="Logo" class="size-12 sm:size-14 md:size-20" />
-      <span class="hidden h-full text-lg font-medium min-[300px]:block"
-        >{SITE.title}</span
-      >
-    </Link>
-    <div class="flex items-center sm:gap-4">
-      <nav class="flex items-center gap-3 text-sm sm:gap-6">
+    <Link href="/" class="flex items-center gap-3.5 no-underline">
+      <img
+        src="/hambaLogoDark.svg"
+        alt="Omar Hammami logo"
+        width="44"
+        height="44"
+        class="size-10 shrink-0 sm:size-11"
+      />
+      <div class="flex flex-col">
+        <span class="text-lg leading-tight font-[430] tracking-[-0.01em] sm:text-[1.2rem]">
+          {SITE.title}
+        </span>
         {
-          NAV_LINKS.map((item) => (
-            <Link
-              href={item.href}
-              class="text-foreground/60 hover:text-foreground/80 capitalize transition-colors"
-            >
-              {item.label}
-            </Link>
-          ))
+          isHome && (
+            <span class="text-muted-foreground mt-0.5 font-mono text-[11px] leading-snug sm:text-xs">
+              New York · NYU CS (B.S. ’22, M.S. ’24) · Recurse Alum
+            </span>
+          )
         }
+      </div>
+    </Link>
+
+    <div
+      class="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-xs sm:text-[13px]"
+    >
+      <nav aria-label="Site" class="flex items-center gap-4">
+        <a
+          href="/cv/ResumeHammamiOmar.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-foreground decoration-muted-foreground hover:decoration-foreground underline underline-offset-4 transition-colors"
+        >
+          cv ↗
+        </a>
+        <Link
+          href="/blog"
+          class="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          blog
+        </Link>
+        <Link
+          href="/recipes"
+          class="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          recipes
+        </Link>
       </nav>
-      <!-- MobileMenu removed — nav links are always visible -->
-      <ThemeToggle transition:persist />
+
+      <span class="text-border hidden sm:inline" aria-hidden="true">|</span>
+
+      <nav
+        aria-label="Links"
+        class="text-muted-foreground flex items-center gap-4"
+      >
+        <a
+          href="https://github.com/hammamiomar"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-foreground transition-colors"
+        >
+          github
+        </a>
+        <a
+          href="https://linkedin.com/in/hhammamiomar"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-foreground transition-colors"
+        >
+          linkedin
+        </a>
+        <a
+          href="https://x.com/hambagugu"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-foreground transition-colors"
+        >
+          twitter
+        </a>
+        <a
+          href="mailto:hhammamiomar@gmail.com"
+          class="hover:text-foreground transition-colors"
+        >
+          email
+        </a>
+      </nav>
     </div>
   </div>
 </header>

@@ -16,21 +16,27 @@ import Favicons from './Favicons.astro'
   <meta name="HandheldFriendly" content="True" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <meta
     name="format-detection"
     content="telephone=no,date=no,address=no,email=no,url=no"
   />
 
-  <meta
-    name="theme-color"
-    content="#121212"
-    media="(prefers-color-scheme: dark)"
+  <meta name="theme-color" content="#000000" />
+
+  <link
+    rel="preload"
+    href="/fonts/piazzolla-roman.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin
   />
-  <meta
-    name="theme-color"
-    content="#121212"
-    media="(prefers-color-scheme: light)"
+  <link
+    rel="preload"
+    href="/fonts/PaperMono-Variable.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin
   />
 
   <link rel="sitemap" href="/sitemap-index.xml" />
@@ -44,8 +50,6 @@ import Favicons from './Favicons.astro'
 
   <Favicons />
   <ClientRouter />
-
-  <script is:inline defer data-domain="hammamiomar.xyz" src="https://plausible.io/js/script.js"></script>
 
   <slot />
 </head>

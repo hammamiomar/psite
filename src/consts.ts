@@ -3,7 +3,7 @@ import type { IconMap, SocialLink, Site } from '@/types'
 export const SITE: Site = {
   title: 'Omar Hammami',
   description:
-    'ML engineer & interpretability researcher in NYC — real-time SAE-steered diffusion, feature visualization for DINOv2, subspace geometry in diffusion transformers.',
+    'Applied ML researcher and systems engineer in NYC — interactive vision interpretability, browser GPU training (DinoDreamer), and real-time diffusion steering (Latent Dance).',
   href: 'https://hammamiomar.com',
   author: 'Omar Hammami',
   locale: 'en-US',
@@ -12,7 +12,6 @@ export const SITE: Site = {
 }
 
 export const NAV_LINKS: SocialLink[] = [
-
   {
     href: '/blog',
     label: 'blog',
@@ -29,6 +28,10 @@ export const NAV_LINKS: SocialLink[] = [
 
 export const SOCIAL_LINKS: SocialLink[] = [
   {
+    href: 'https://computervision.vision',
+    label: 'Website',
+  },
+  {
     href: 'https://github.com/hammamiomar',
     label: 'GitHub',
   },
@@ -42,8 +45,8 @@ export const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     href: 'https://x.com/hambagugu',
-    label: 'Twitter'
-  }
+    label: 'Twitter',
+  },
 ]
 
 export const ICON_MAP: IconMap = {

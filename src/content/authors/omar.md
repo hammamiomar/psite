@@ -1,8 +1,8 @@
 ---
 name: 'Omar Hammami'
 pronouns: 'he/him'
-avatar: '/hambaLogoTrans.png'
-bio: 'ML engineer building tools for navigating the space inside generative models'
+avatar: '/hambaLogoDark.svg'
+bio: 'Applied ML researcher and systems engineer building interactive tools for seeing inside visual models.'
 mail: 'hhammamiomar@gmail.com'
 website: 'https://hammamiomar.com'
 github: 'https://github.com/hammamiomar'

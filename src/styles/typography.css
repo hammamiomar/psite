@@ -2,72 +2,70 @@
 
 @layer components {
   .prose {
-    @apply text-foreground text-base leading-7 [&>link[rel="stylesheet"]+*]:mt-0!;
+    @apply text-foreground text-[1.125rem] leading-[1.62] sm:text-[1.22rem] [&>link[rel="stylesheet"]+*]:mt-0!;
 
     p {
-      @apply text-foreground/80 my-5 not-first:mt-5;
+      color: var(--body-ink);
+      @apply my-5 not-first:mt-5;
     }
 
-    /* Don't use an <h1> in your posts, one is already generated in blog/[...id].astro */
     h1 {
-      @apply text-foreground mt-0 mb-6 scroll-mt-32 text-4xl font-medium xl:scroll-mt-20;
+      @apply text-foreground mt-0 mb-6 scroll-mt-32 text-4xl font-[420] tracking-[-0.015em] xl:scroll-mt-20;
     }
 
     h2 {
-      @apply text-foreground mt-8 mb-4 scroll-mt-32 text-2xl font-medium xl:scroll-mt-20;
+      @apply text-foreground mt-9 mb-4 scroll-mt-32 text-2xl font-[450] tracking-[-0.012em] xl:scroll-mt-20;
     }
 
     h3 {
-      @apply text-foreground mt-6 mb-4 scroll-mt-32 text-xl font-medium xl:scroll-mt-20;
+      @apply text-foreground mt-7 mb-3 scroll-mt-32 text-xl font-[460] tracking-[-0.01em] xl:scroll-mt-20;
     }
 
     h4 {
-      @apply text-foreground mt-6 mb-3 scroll-mt-32 text-lg font-medium xl:scroll-mt-20;
+      @apply text-foreground mt-6 mb-3 scroll-mt-32 text-lg font-[460] xl:scroll-mt-20;
     }
 
-    h5 {
-      @apply text-foreground mt-5 mb-3 scroll-mt-32 font-medium xl:scroll-mt-20;
-    }
-
+    h5,
     h6 {
-      @apply text-foreground mt-5 mb-3 scroll-mt-32 font-medium xl:scroll-mt-20;
+      @apply text-foreground mt-5 mb-3 scroll-mt-32 font-[460] xl:scroll-mt-20;
     }
 
     a {
-      @apply text-foreground decoration-muted-foreground hover:decoration-foreground font-medium break-words underline underline-offset-[3px] transition-colors;
+      @apply text-foreground hover:decoration-foreground break-words underline decoration-[rgb(255_255_255/0.3)] decoration-1 underline-offset-[0.2em] transition-colors;
     }
 
     strong {
-      @apply text-foreground font-medium;
+      @apply text-foreground font-[600];
     }
 
     ul {
-      @apply marker:text-foreground/30 my-5 ml-6 list-disc [&>li]:mt-2;
+      @apply marker:text-muted-foreground my-5 ml-6 list-disc [&>li]:mt-2;
     }
 
     ol {
-      @apply marker:text-foreground/30 my-5 ml-6 list-decimal [&>li]:mt-2;
+      @apply marker:text-muted-foreground my-5 ml-6 list-decimal [&>li]:mt-2;
       @apply [&[type='A']]:list-[upper-alpha] [&[type='I']]:list-[upper-roman] [&[type='a']]:list-[lower-alpha] [&[type='i']]:list-[lower-roman];
     }
 
     li {
-      @apply text-foreground/80 pl-2 [&>p]:my-0;
+      color: var(--body-ink);
+      @apply pl-2 [&>p]:my-0;
     }
 
     ul ul,
     ol ol,
     ul ol,
     ol ul {
-      @apply marker:text-foreground/30 my-2 ml-6;
+      @apply marker:text-muted-foreground my-2 ml-6;
     }
 
     code {
-      @apply bg-muted/50 text-foreground relative rounded-sm px-[0.3rem] py-[0.2rem] text-sm font-medium break-words;
-      @apply [&>span[data-line='']>*]:text-(--shiki-light) dark:[&>span[data-line='']>*]:text-(--shiki-dark);
+      @apply bg-secondary text-foreground relative px-[0.3rem] py-[0.15rem] font-mono text-[0.84em] break-words;
+      @apply [&>span[data-line='']>*]:text-(--shiki-dark);
     }
 
     blockquote {
-      @apply [&_*]:text-muted-foreground small my-6 border-l-2 pl-6;
+      @apply [&_*]:text-muted-foreground border-border my-6 border-l pl-5 text-[0.95em];
     }
 
     hr {
@@ -79,20 +77,21 @@
     }
 
     thead {
-      @apply border-muted-foreground/30 border-b;
+      @apply border-border border-b;
     }
 
     th {
-      @apply px-4 py-2 font-medium;
+      @apply px-4 py-2 font-mono text-xs font-normal tracking-wide uppercase;
       @apply text-left [&[align=center]]:text-center [&[align=right]]:text-right;
     }
 
     tr {
-      @apply border-muted-foreground/30 border-y first:border-t-0 last:border-b-0;
+      @apply border-border border-y first:border-t-0 last:border-b-0;
     }
 
     td {
-      @apply fix-margin text-foreground/80 small px-4 py-2 align-top break-words;
+      color: var(--body-ink);
+      @apply fix-margin small px-4 py-2 align-top break-words;
       @apply text-left [&[align=center]]:text-center [&[align=right]]:text-right;
     }
 
@@ -108,15 +107,16 @@
     }
 
     kbd {
-      @apply text-foreground bg-muted border-border rounded-md border px-2 py-1 text-xs font-medium;
+      @apply text-foreground bg-secondary border-border border px-1.5 py-0.5 font-mono text-xs;
     }
 
     .katex-display {
-      @apply text-foreground/80 my-6 overflow-x-auto overflow-y-hidden py-2 tracking-normal;
+      color: var(--body-ink);
+      @apply my-6 overflow-x-auto overflow-y-hidden py-2 tracking-normal;
     }
 
     .footnotes {
-      @apply text-muted-foreground mt-12 border-t border-border pt-6 text-sm;
+      @apply text-muted-foreground border-border mt-12 border-t pt-6 text-sm;
     }
 
     .footnotes ol {
@@ -128,12 +128,12 @@
     }
 
     [data-footnote-ref] {
-      @apply text-primary no-underline text-xs font-medium;
+      @apply text-foreground font-mono text-xs no-underline;
       vertical-align: super;
     }
 
     [data-footnote-backref] {
-      @apply text-primary no-underline ml-1;
+      @apply text-muted-foreground ml-1 no-underline;
     }
   }
 }

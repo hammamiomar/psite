@@ -12,22 +12,82 @@ import Link from '@/components/Link.astro'
   />
 
   <div class="prose prose-neutral dark:prose-invert max-w-none">
-    <h2>Current</h2>
+    <h2>
+      Current —{' '}
+      <Link href="https://computervision.vision" underline>
+        computervision.vision
+      </Link>
+    </h2>
+    <p>
+      Independent research and deployed tools for seeing inside and steering
+      visual models.
+    </p>
     <ul>
       <li>
-        <Link href="/blog/dino-dreamer" underline>
+        <Link href="https://dinodreamer.computervision.vision" underline>
           DinoDreamer
-        </Link> - Feature-visualization instrument for frozen vision models. Gradient-ascent synthesis inside DINOv2 — archetypal-SAE targets, MACO/Fourier/pyramid parameterizations, and measured render-and-reencode evidence for every run. (2026–present)
+        </Link>{' '}
+        — Interactive browser tool for visualizing Meta’s DINOv3. Trained a
+        16,384-group Grassmannian block-sparse featurizer and built a Rust/Burn
+        to WebAssembly/WebGPU engine so anyone can train and interact with
+        neural cellular automata on their own GPU.{' '}
+        <span class="text-muted-foreground text-sm">
+          (
+          <Link
+            href="https://computervision.vision/writing/dinodreamer/"
+            underline
+          >
+            Write-up
+          </Link>
+          {' · '}
+          <Link href="https://dinodreamer.computervision.vision" underline>
+            Open DinoDreamer
+          </Link>
+          {' · 2026–present'})
+        </span>
       </li>
+      <li>
+        <Link href="/blog/letting-computers-dance" underline>
+          Latent Dance
+        </Link>{' '}
+        — Real-time music visualizer that steers SDXL through 20,480 sparse
+        autoencoder features on a single consumer GPU, turning diffusion into a
+        live audio-reactive control loop instead of offline batch generation.{' '}
+        <span class="text-muted-foreground text-sm">
+          (
+          <Link href="/blog/letting-computers-dance" underline>
+            Write-up
+          </Link>
+          {' · '}
+          <Link href="https://github.com/hammamiomar/latent-dance" underline>
+            Code
+          </Link>
+          {' · 2025–present'})
+        </span>
+      </li>
+    </ul>
+
+    <h2>Superseded ideas</h2>
+    <ul>
       <li>
         <Link href="/blog/subspacelens" underline>
           SubspaceLens
-        </Link> - Training-free interpretability for diffusion transformers using MCR² coding rate metrics. Measures subspace geometry — no SAEs, no learned components, just eigenvalues. (2026)
-      </li>
-      <li>
-        <Link href="https://github.com/hammamiomar/latent-dance" underline>
-          Latent Dance
-        </Link> - Real-time audio-reactive SDXL with SAE steering. 20,480 interpretable features driven by music at 50 FPS on a single consumer GPU. Music visualization as interpretability research. (2025–present)
+        </Link>{' '}
+        — Measuring subspace geometry in diffusion transformers with MCR² coding
+        rates instead of sparse autoencoders. Superseded once I moved away from
+        generative decoders toward representation models and DinoDreamer, kept
+        here as the detour that got me there.{' '}
+        <span class="text-muted-foreground text-sm">
+          (
+          <Link href="/blog/subspacelens" underline>
+            Write-up
+          </Link>
+          {' · '}
+          <Link href="https://github.com/hammamiomar/SubspaceLens" underline>
+            Code
+          </Link>
+          {' · 2026'})
+        </span>
       </li>
     </ul>
 
@@ -36,27 +96,39 @@ import Link from '@/components/Link.astro'
       <li>
         <Link href="https://github.com/hammamiomar/SAM_CAM_BAM" underline>
           SAM_CAM_BAM
-        </Link> - Interactive music visualizer combining computer vision and audio processing for dynamic visual effects using webcam input and real-time audio analysis. (2025)
+        </Link>{' '}
+        — Live Rust music visualizer pairing ONNX webcam segmentation with
+        real-time audio frequency analysis. (2025)
       </li>
       <li>
         <Link href="https://github.com/hammamiomar/hambaJubaTuba" underline>
           hambaJubaTuba
-        </Link> - Transforms audio features into latent space trajectories, producing temporally coherent music visualizations via diffusion models. The predecessor to Latent Dance. (2024)
+        </Link>{' '}
+        — Audio-driven latent trajectories for temporally coherent diffusion
+        music visualization; the predecessor to Latent Dance. (2024)
       </li>
       <li>
         <Link href="https://github.com/hammamiomar/better_spotify" underline>
           Better Spotify
-        </Link> - Fullstack Rust web app that provides true random shuffling for Spotify playlists. (2025)
+        </Link>{' '}
+        — Full-stack Rust web app for true random shuffling on Spotify
+        playlists. (2025)
       </li>
       <li>
         <Link href="https://github.com/hammamiomar/workTimerPet" underline>
           workTimerPet
-        </Link> - A little work timer pet that records work time and break time. (2025)
+        </Link>{' '}
+        — Work and break timer pet, also living at the bottom of the home page.
+        (2025)
       </li>
       <li>
-        <Link href="https://drive.google.com/file/d/1ekjcFVN1Jq6dJ0ETpsyNm2pUHbrF-pYx/view?usp=share_link" underline>
+        <Link
+          href="https://drive.google.com/file/d/1ekjcFVN1Jq6dJ0ETpsyNm2pUHbrF-pYx/view?usp=share_link"
+          underline
+        >
           A Careful Look into Graph Contrastive Learning
-        </Link> - Experimentation testing claims on Graph Contrastive Learning and exploring improvements. (2022)
+        </Link>{' '}
+        — Empirical tests of claims in graph contrastive learning. (2022)
       </li>
     </ul>
 
@@ -64,13 +136,20 @@ import Link from '@/components/Link.astro'
     <ul>
       <li>
         <Link href="https://rosap.ntl.bts.gov/view/dot/72518" underline>
-          "Exploring Cost-effective Computer Vision Solutions for Smart Transportation Systems"
-        </Link> - Connected Cities for Smart Mobility toward Accessible and Resilient Transportation Center (2023)
+          “Exploring Cost-Effective Computer Vision Solutions for Smart
+          Transportation Systems”
+        </Link>{' '}
+        — USDOT / C2SMART Center (2023)
       </li>
       <li>
-        <Link href="https://www.sciencedirect.com/science/article/abs/pii/S0965856422001458" underline>
-          "A New Curb Lane Monitoring and Illegal Parking Impact Estimation Approach"
-        </Link> - Transportation Research Part A (2022)
+        <Link
+          href="https://www.sciencedirect.com/science/article/abs/pii/S0965856422001458"
+          underline
+        >
+          “A New Curb Lane Monitoring and Illegal Parking Impact Estimation
+          Approach”
+        </Link>{' '}
+        — Transportation Research Part A (2022)
       </li>
     </ul>
   </div>

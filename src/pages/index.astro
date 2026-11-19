@@ -1,67 +1,40 @@
 ---
-import Link from '@/components/Link.astro'
+import CvVisionPortal from '@/components/CvVisionPortal.astro'
 import PageHead from '@/components/PageHead.astro'
 import WorkTimer from '@/components/ui/work-timer'
 import Layout from '@/layouts/Layout.astro'
+
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Omar Hammami',
+  url: 'https://hammamiomar.com',
+  email: 'mailto:hhammamiomar@gmail.com',
+  jobTitle: 'Applied ML Researcher & Systems Engineer',
+  alumniOf: {
+    '@type': 'CollegeOrUniversity',
+    name: 'New York University',
+  },
+  sameAs: [
+    'https://computervision.vision',
+    'https://dinodreamer.computervision.vision',
+    'https://github.com/hammamiomar',
+    'https://linkedin.com/in/hhammamiomar',
+    'https://x.com/hambagugu',
+  ],
+}
 ---
 
-<Layout>
-  <PageHead slot="head" title="About" />
+<Layout flushTop={true}>
+  <PageHead slot="head" title="Omar Hammami" />
+  <script
+    slot="head"
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(personSchema)}
+  />
 
-  <section class="prose prose-neutral dark:prose-invert max-w-none">
-    <p>
-      I'm Omar — an ML engineer and interpretability researcher in New York
-      City. I build instruments for seeing inside models.
-    </p>
-    <p>
-      Currently building <Link href="/blog/dino-dreamer">DinoDreamer</Link> — a
-      feature-visualization instrument for navigating DINOv2's representation
-      space. Before that: <Link href="/blog/subspacelens">SubspaceLens</Link>,
-      measuring subspace geometry in diffusion transformers with MCR² instead
-      of sparse autoencoders, and
-      <Link href="/blog/letting-computers-dance">Latent Dance</Link>, a music
-      visualizer where audio re-steers SDXL through 20,480 SAE features every
-      frame — a live control loop at 50 FPS, not batch generation.
-    </p>
-    <p>
-      NYU CS (M.S. '24), Recurse Center alum, two peer-reviewed computer-vision
-      publications. Open to ML engineering and research engineering roles —
-      <Link href="mailto:hhammamiomar@gmail.com">say hi</Link>.
-    </p>
-  </section>
+  <CvVisionPortal />
 
-  <nav class="not-prose my-8 font-mono text-sm">
-    <div class="text-muted-foreground mb-3 text-xs tracking-widest uppercase">explore</div>
-    <div class="space-y-2">
-      <a href="/blog" class="group flex items-baseline gap-3 py-1.5 transition-colors hover:text-foreground">
-        <span class="text-muted-foreground group-hover:text-primary transition-colors">~/</span>
-        <span class="font-medium">blog</span>
-        <span class="text-muted-foreground text-xs hidden sm:inline">— interpretability, music vis, ml</span>
-      </a>
-      <a href="/projects" class="group flex items-baseline gap-3 py-1.5 transition-colors hover:text-foreground">
-        <span class="text-muted-foreground group-hover:text-primary transition-colors">~/</span>
-        <span class="font-medium">projects</span>
-        <span class="text-muted-foreground text-xs hidden sm:inline">— DinoDreamer, Latent Dance, SubspaceLens</span>
-      </a>
-      <a href="/recipes" class="group flex items-baseline gap-3 py-1.5 transition-colors hover:text-foreground">
-        <span class="text-muted-foreground group-hover:text-primary transition-colors">~/</span>
-        <span class="font-medium">recipes</span>
-        <span class="text-muted-foreground text-xs hidden sm:inline">— because why not</span>
-      </a>
-    </div>
-    <div class="mt-4">
-      <a
-        href="/cv/ResumeHammamiOmar.pdf"
-        download
-        class="group flex items-baseline gap-3 py-1.5 transition-colors hover:text-foreground"
-      >
-        <span class="text-muted-foreground group-hover:text-primary transition-colors">~/</span>
-        <span class="font-medium">cv</span>
-        <span class="text-muted-foreground text-xs hidden sm:inline">— pdf download</span>
-      </a>
-    </div>
-  </nav>
-
-  <WorkTimer client:load className="my-8" />
-
+  <WorkTimer client:load className="py-12" />
 </Layout>
